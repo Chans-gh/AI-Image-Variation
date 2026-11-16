@@ -67,6 +67,8 @@ python3 -m venv .venv && . .venv/bin/activate
 python -m pip install -r requirements.txt        # 只需要 Pillow
 ```
 
+实测环境：Python 3.12.14 + Pillow 13.0.0；Python 3.9.6 + Pillow 11.3.0 亦全绿。
+
 ## 快速自检
 
 ```bash
