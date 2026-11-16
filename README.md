@@ -16,7 +16,30 @@
 - 核心库：`skills/image-variations/scripts/iv_skill/`，纯 Python + Pillow，不绑定任何宿主 API。
 - 入口壳：`run_task.py`（JSON 进 / JSON 出）、`SKILL.md`（DSH 发现与编排，只写流程不写业务规则）。
 - `builtin` 仅提供可注入接口；DSH 无内置生图时显式返回 `BUILTIN_UNAVAILABLE`，不静默降级。
-- 本轮全链路证据用 Mock Provider（`tests/mock_provider.py`）打通；真实密钥到位后只补适配器实现。
+- 本轮全链路证据用 Mock / 合成 Provider（`tests/mock_provider.py`、`iv_skill/synthetic.py`）打通；
+  真实密钥到位后只补适配器实现（字段名待真实响应确认）。
+
+## 现在的状态
+
+五个阶段全部落地并有测试证据（阈值校准仍待真实模型）：
+
+| 阶段 | 内容 | 入口 |
+|---|---|---|
+| 0–1 | 仓库骨架、契约与夹具、48 项契约测试 | `tests/run_contract_tests.py` |
+| 2 | Provider 能力抽象、两协议适配、错误归一、SSRF 防护、排产预检 | `iv_skill/preflight.py` |
+| 3 | Grid 一次成板、D-24 接缝评分、确定性切图、整板重试与预算 | `iv_skill/executor.py` |
+| 4 | Sequence 计划先行、图 1 锚点、失败保槽与续跑、近重复处理 | `iv_skill/sequence.py` |
+| 5 | 产物清单、交付包与 ZIP、`SKILL.md` 入口、JSON CLI | `scripts/run_task.py` |
+
+用法见 [`skills/image-variations/SKILL.md`](skills/image-variations/SKILL.md)。最小示例：
+
+```bash
+echo '{"task_id":"demo","output_mode":"grid","grid_size":2,"direction":"light",
+       "input_type":"text_only","subject":"一只浅灰陶瓷杯","provider":{"type":"mock_synthetic"}}' \
+  > /tmp/task.json
+.venv/bin/python skills/image-variations/scripts/run_task.py --input /tmp/task.json \
+  --workspace ./workspace --pretty
+```
 
 ## 单一真相源（不复制基线）
 

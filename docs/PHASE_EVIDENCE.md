@@ -228,3 +228,25 @@
   基线内部不一致，未改。
 - **AC-25（方向扩展）**：注册表可扩展已验证，但"新增第 13 个方向"的正/负例尚未补测试。
 - **`/image-variations` 宿主调用**：`SKILL.md` 已就位，DSH 侧的触发接线未做。
+
+## 收尾修正 — 错误语义（2026-11-16）
+
+`run_all.py` 跑出 9 套件全绿之后又做了一轮"错误码是否名副其实"的复核，改掉三处会误导用户的实现：
+
+| 场景 | 修正前 | 修正后 |
+|---|---|---|
+| 方向 key 不在注册表内 | `MULTIPLE_DIRECTIONS`（语义不符） | `INVALID_INPUT` + 提示可用键 |
+| `direction` 是列表或 `"light+scene"` | 混在一起报 | `MULTIPLE_DIRECTIONS`（任务层与清单层都能识别组合方向） |
+| 用户指定 1K 但单格长边低于硬下限 | 文案说"最高可用档位仅 455px"（不实） | 点名"你指定的 1K …低于硬下限 512px；可用档位 [1K,2K,4K]，或改用更小的网格/比例" |
+
+对应新增/修正测试：`test_multiple_directions_rejected`、`test_unknown_direction_rejected`、
+`test_requested_tier_too_small_names_the_user_choice`，以及基线夹具
+`invalid-direction-multiple`（`light+scene` → `MULTIPLE_DIRECTIONS`）继续通过。
+
+### 复现全部证据
+
+```bash
+.venv/bin/python shared/check_baseline.py                                  # 238/238
+.venv/bin/python Image_Variations_Dual_Skill_SPEC_v1.1/tests/validate_example_contracts.py   # 24/24
+.venv/bin/python skills/image-variations/tests/run_all.py                   # 9 套件全绿
+```
