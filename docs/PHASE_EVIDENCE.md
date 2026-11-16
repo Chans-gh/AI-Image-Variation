@@ -130,3 +130,50 @@
 - 单格长边口径：SPEC 01 §3.4 写"单格**长边**不低于 1024"，而基线 `tests/checks.py` 用**短边**。
   当前实现：分级（`TILE_RESOLUTION_RISK/TOO_LOW`）按**长边**，`validation.tile_edge_px` 仍写短边。
   3:4 画幅下两种口径会给出不同结论（3×3 @4K：短边 682 / 长边 909）。
+
+## Phase 4 — Sequence 逐帧生成与锚点/失败续跑（2026-11-16）
+
+### 证据
+
+| 套件 | 结果 |
+|---|---|
+| `test_sequence.py` | `Ran 34 tests ... OK` |
+| `test_grid.py` | `Ran 39 tests ... OK`（新增整板损坏重试两例） |
+| `run_all.py` | `全部 8 个套件通过` |
+
+### 本阶段落地
+
+- `sequence.plan_sequence()`：**先计划后调用**。产出 N 条 `FramePlan`（`index` / `change_point` /
+  `visual_description` / `locked_elements` / `phase_label` / `prompt`），
+  任何一格都不需要"先试试看"；帧数 4–16、分支必须被方向支持、帧计划不得重复。
+- 逐帧 Prompt：`phase_label + dimension` 拼成唯一变化点；`FRAME_PLAN[i]` 注入本帧独有的变化点与
+  保持项；`progression`/`narrative` 额外注入 `ORDER_CONTEXT`，`variants` 明确"不表达时间顺序"。
+- `SequenceRunner`：
+  - `text_only` 图 1 不带参考图；图 2–N **全部引用图 1 的字节**，实测断言不链式引用图 i−1；
+  - `image_only` / `image_plus_text` 每帧都携带原图，并把原图 SHA256 记为 `anchor_revision`；
+  - 图 1 失败 → `SEQUENCE_ANCHOR_FAILED` 并停止一切后续调用（实测只发生 1 次请求）；
+  - 图 i 失败 → 保留原索引槽位、继续后续帧、最终 `partial_failed`，
+    错误里带 `item_ref`/`retry_available`/`attempts`；
+  - 任务级致命错误（鉴权等）立即中止，不继续烧预算。
+- 近重复：计划期按变化点文案查重（同一轮维度不得重复）；生成期按 32×32 灰度相似度比对，
+  ≥`sequence.near_duplicate_similarity_max` 时**重试本帧**，重试耗尽后保留原槽位并标注
+  `near_duplicate_of` + `warnings[]`。
+- `retry_failed_frames()` 续跑：只重生成失败帧，成功帧 SHA256 一字不变；参考图版本不一致时
+  报 `INVALID_INPUT`（要求整组重建）；图 1 未成功时明确 `SEQUENCE_ANCHOR_FAILED`。
+
+### 本阶段发现（已修）
+
+1. **双层重试叠加**：适配器内层重试与执行器层重试同时生效，实际调用次数可达计划数的数倍，
+   预算记账失真。现在执行器/序列器向适配器传 `max_extra_retries=0`，由上层统一掌控次数。
+2. Grid 执行器原先用 `blocking` 判断可否重试，语义错了（`blocking` 只表示"必须显式报给用户"）。
+   改为按 `retry_on` 集合与尝试次数判定，整板损坏现在会重试而不是立刻失败。
+3. `plan_generation()` 缺少 `reference_bytes` 入参，导致"原图超过模型输入上限"这条底线无法生效；
+   已补齐（Grid 与 Sequence 都会传真实字节数）。
+
+### 待确认（累计，均不改基线）
+
+- 错误码注册表**没有**"近重复"专用码。当前用 `IMAGE_VALIDATION_FAILED`（非阻断、可重试）承载
+  "帧与已有帧近重复"，并把 `near_duplicate_of` 写进资产记录。若希望单独成码，请确认是否允许
+  在注册表中新增（本轮未改基线）。
+- 计划期查重口径：同一轮内**维度**不得重复（完全判定）；跨轮复用维度时用"（第 k 轮）"显式标注。
+  若认为跨轮复用也算近重复，需要提高 `sequence.max_frames` 或为方向补更多 `allowed_changes`。

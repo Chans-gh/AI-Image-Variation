@@ -23,6 +23,7 @@ SUITES = [
     ("Provider 错误与安全", [sys.executable, str(HERE / "test_provider_errors.py")]),
     ("适配器协议", [sys.executable, str(HERE / "test_adapters.py")]),
     ("Grid 成板与切图", [sys.executable, str(HERE / "test_grid.py")]),
+    ("Sequence 计划与逐帧", [sys.executable, str(HERE / "test_sequence.py")]),
 ]
 
 

@@ -374,6 +374,23 @@ class TestExecuteGrid(unittest.TestCase):
         self.assertEqual(len(adapter.trace), CONFIG["retry"]["grid_max_attempts"])
         self.assertIn("grid_attempts", ctx.exception.detail)
 
+    def test_corrupt_board_retried(self):
+        adapter = mock_adapter([b"broken", png(smooth_board(2, 512))])
+        execution = execute_grid(adapter=adapter, direction_key="light", grid_size=2,
+                                 aspect_ratio="1:1", input_type="text_only", subject_anchor="x",
+                                 registry=REGISTRY, config=CONFIG, sleep=lambda _: None)
+        self.assertEqual(len(adapter.trace), 2)
+        self.assertEqual(execution.result.verdict, "pass")
+
+    def test_corrupt_board_exhausts_attempts(self):
+        adapter = mock_adapter([b"broken"] * 5)
+        with self.assertRaises(IVError) as ctx:
+            execute_grid(adapter=adapter, direction_key="light", grid_size=2, aspect_ratio="1:1",
+                         input_type="text_only", subject_anchor="x", registry=REGISTRY,
+                         config=CONFIG, sleep=lambda _: None)
+        self.assertEqual(ctx.exception.code, "IMAGE_VALIDATION_FAILED")
+        self.assertEqual(len(adapter.trace), CONFIG["retry"]["grid_max_attempts"])
+
     def test_border_line_board_rejected(self):
         adapter = mock_adapter([png(border_line_board(2, 512))] * 3)
         with self.assertRaises(IVError) as ctx:
