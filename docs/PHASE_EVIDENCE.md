@@ -250,3 +250,20 @@
 .venv/bin/python Image_Variations_Dual_Skill_SPEC_v1.1/tests/validate_example_contracts.py   # 24/24
 .venv/bin/python skills/image-variations/tests/run_all.py                   # 9 套件全绿
 ```
+
+## 发布修复 — `.gitignore` 误吞核心包（2026-11-16）
+
+首次推送到 GitHub 后做**全新克隆验证**，发现测试在干净克隆里全部失败：
+
+```text
+ModuleNotFoundError: No module named 'iv_skill'
+```
+
+**原因**：`.gitignore` 里为忽略运行产物写的 `iv_*/` 是**非锚定**模式，匹配任意层级的 `iv_*` 目录，
+于是 `skills/image-variations/scripts/iv_skill/`（24 个文件的整个核心包）被静默忽略，
+前 8 次提交里根本没有它。本地测试一直是绿的，因为文件在磁盘上——只有"从零克隆"才能暴露。
+
+**修复**：改成锚定的 `/iv_*/`（只忽略仓库根目录下的产物目录），补交 24 个文件。
+
+**教训**：`git status` 干净不代表仓库完整；发布前必须用**全新克隆**跑一次全量测试，
+而不是只在工作区跑。这条已加进发布检查清单。
