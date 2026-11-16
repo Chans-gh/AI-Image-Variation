@@ -65,6 +65,36 @@ def frame_png(index: int, size=(768, 1024)) -> bytes:
     return png_bytes(size=size, color=color)
 
 
+class FlakyAdapter:
+    """包装合成适配器：指定帧号永远失败，或整体抛致命错误（用于验证失败时不落半成品）。"""
+
+    provider_type = "mock_synthetic"
+
+    def __init__(self, inner, *, fail_indices=(), fatal: IVError | None = None):
+        self.inner = inner
+        self.fail_indices = set(fail_indices)
+        self.fatal = fatal
+        self.calls = 0
+
+    @property
+    def capability(self):
+        return self.inner.capability
+
+    def generate(self, request, *, budget=None, policy=None, sleep=None):
+        self.calls += 1
+        if self.fatal is not None:
+            if budget is not None:
+                budget.consume(tier=request.resolution_tier or "1K")
+            raise self.fatal
+        tail = request.purpose.rsplit("_", 1)[-1]
+        index = int(tail) if tail.isdigit() else 0
+        if index in self.fail_indices:
+            if budget is not None:
+                budget.consume(tier=request.resolution_tier or "1K")
+            raise IVError("IMAGE_VALIDATION_FAILED", f"测试注入失败：第 {index} 帧")
+        return self.inner.generate(request, budget=budget, policy=policy, sleep=sleep)
+
+
 def png_bytes(size=(768, 1024), color=(120, 140, 160)) -> bytes:
     buffer = io.BytesIO()
     Image.new("RGB", size, color).save(buffer, format="PNG")
@@ -117,6 +147,46 @@ class TestGridArtifact(TempWorkspace):
             self.assertEqual(sha256_file(root / tile["path"]), tile["sha256"])
             self.assertEqual(tile["width"], 1024)
         self.assertEqual(manifest["provider_type"], "mock_synthetic")
+
+    def test_rerun_same_revision_leaves_no_stale_files(self):
+        """同一 revision 重跑：上一版的文件绝不能留在目录里冒充本版产物。"""
+        from unittest import mock
+
+        import iv_skill.task as task_module
+        from iv_skill.synthetic import build_synthetic_adapter
+
+        first = run_task(grid_spec(), workspace=self.workspace)   # rev1 完整（2×2：整板 + 4 格）
+        def flaky_adapter(spec, *, config, grid_size):
+            inner = build_synthetic_adapter(grid_size=grid_size, config=config)
+            return FlakyAdapter(inner, fatal=IVError("AUTH_FAILED", "注入的致命错误"))
+        with mock.patch.object(task_module, "build_task_adapter", flaky_adapter):
+            with self.assertRaises(IVError):
+                run_task(grid_spec(), workspace=self.workspace)
+        root = self.workspace / "iv_t_grid_rev1"
+        manifest = read_json(root / "manifest.json")
+        # 本轮没写成功 → 旧产物必须逐字节原样保留，且没有暂存/备份目录残留
+        self.assertEqual(len(manifest["images"]), 5)
+        self.assertEqual({p: sha256_file(root / p) for p in first["checksums"]},
+                         first["checksums"])
+        self.assertEqual(verify_manifest(root), [])
+        self.assertEqual(list(self.workspace.glob(".*staging*")), [])
+        self.assertEqual(list(self.workspace.glob(".*previous*")), [])
+
+    def test_stale_file_is_detected(self):
+        """不变量守卫：目录里多出未登记文件必须报 PACKAGE_MANIFEST_INVALID。"""
+        from iv_skill.artifact import _assert_files_match_manifest
+
+        root = self.workspace / "probe"
+        (root / "images").mkdir(parents=True)
+        (root / "images" / "01.png").write_bytes(png_bytes((64, 64)))
+        (root / "manifest.json").write_text("{}", encoding="utf-8")
+        manifest = {"images": [{"path": "images/01.png"}]}
+        self.assertIsNone(_assert_files_match_manifest(root, manifest))
+        (root / "images" / "99.png").write_bytes(png_bytes((64, 64)))
+        with self.assertRaises(IVError) as ctx:
+            _assert_files_match_manifest(root, manifest)
+        self.assertEqual(ctx.exception.code, "PACKAGE_MANIFEST_INVALID")
+        self.assertIn("99.png", ctx.exception.message)
 
     def test_package_covers_every_file(self):
         result = run_task(grid_spec(pack_zip=True), workspace=self.workspace)
@@ -258,6 +328,76 @@ def run_task_with_resume(spec: dict, previous_dir: Path, *, workspace: Path) -> 
     from iv_skill.task import resume_sequence_task
 
     return resume_sequence_task(spec, previous_dir=previous_dir, workspace=workspace)
+
+
+from iv_skill.task import resume_sequence_task  # noqa: E402
+
+
+class TestImageAnchorResume(TempWorkspace):
+    """续跑必须确认"还是同一张参考图"，否则会把不同锚点的帧混进同一组。"""
+
+    def partial_with_reference(self, *, name="ref_a.png", fail_index=3):
+        from unittest import mock
+
+        import iv_skill.task as task_module
+        from iv_skill.synthetic import build_synthetic_adapter
+
+        reference = self.workspace / name
+        reference.write_bytes(png_bytes((512, 512)))
+        spec = sequence_spec(task_id="t_anchor", input_type="image_only",
+                             reference_path=name, image_count=4)
+        def flaky_adapter(spec_, *, config, grid_size):
+            inner = build_synthetic_adapter(grid_size=grid_size, config=config)
+            return FlakyAdapter(inner, fail_indices={fail_index})
+        with mock.patch.object(task_module, "build_task_adapter", flaky_adapter):
+            result = run_task(spec, workspace=self.workspace)
+        self.assertEqual(result["status"], "partial_failed")
+        self.assertEqual(result["failed_indices"], [fail_index])
+        return spec, Path(result["artifact_dir"])
+
+    def test_fingerprint_is_recorded_and_only_a_hash(self):
+        _, root = self.partial_with_reference()
+        manifest = read_json(root / "manifest.json")
+        anchor = manifest["consistency_anchor"]
+        self.assertEqual(anchor["type"], "input_image")
+        self.assertEqual(anchor["reference"], "not-exported")
+        self.assertRegex(anchor["sha256"], r"^[a-f0-9]{64}$")
+        blob = b"".join(path.read_bytes() for path in root.rglob("*") if path.is_file())
+        self.assertNotIn(b"ref_a.png", blob)
+
+    def test_resume_same_reference_succeeds(self):
+        spec, root = self.partial_with_reference()
+        result = resume_sequence_task(spec, previous_dir=root, workspace=self.workspace)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["artifact_revision"], "rev2")
+        manifest = read_json(Path(result["artifact_dir"]) / "manifest.json")
+        baseline.validate_instance("image-artifact.schema.json", manifest)
+        self.assertEqual(manifest["consistency_anchor"]["sha256"],
+                         read_json(root / "manifest.json")["consistency_anchor"]["sha256"])
+        self.assertEqual([f["index"] for f in manifest["images"]], [1, 2, 3, 4])
+
+    def test_resume_changed_reference_blocked(self):
+        spec, root = self.partial_with_reference()
+        (self.workspace / "ref_b.png").write_bytes(png_bytes((512, 512), color=(20, 200, 90)))
+        swapped = dict(spec, reference_path="ref_b.png")
+        with self.assertRaises(IVError) as ctx:
+            resume_sequence_task(swapped, previous_dir=root, workspace=self.workspace)
+        self.assertEqual(ctx.exception.code, "INVALID_INPUT")
+        self.assertIn("锚点版本不一致", ctx.exception.message)
+        self.assertFalse((self.workspace / "iv_t_anchor_rev2").exists(),
+                         "被拒时不得产出新修订")
+
+    def test_resume_legacy_manifest_without_fingerprint_blocked(self):
+        from shared.jsonio import write_json
+
+        spec, root = self.partial_with_reference()
+        manifest = read_json(root / "manifest.json")
+        manifest["consistency_anchor"].pop("sha256")
+        write_json(root / "manifest.json", manifest)
+        with self.assertRaises(IVError) as ctx:
+            resume_sequence_task(spec, previous_dir=root, workspace=self.workspace)
+        self.assertEqual(ctx.exception.code, "INVALID_INPUT")
+        self.assertIn("缺少参考图指纹", ctx.exception.message)
 
 
 class TestGuardsAndSecrets(TempWorkspace):

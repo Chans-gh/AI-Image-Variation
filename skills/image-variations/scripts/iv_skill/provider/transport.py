@@ -44,14 +44,36 @@ class TransportResponse:
         return None
 
 
+class ValidatingRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """跟随重定向前先过一遍 SSRF 校验。
+
+    默认的 `urlopen` 会自动跟随 301/302/303/307，若上游（或中间网关）把请求指向
+    `169.254.169.254` / 私网地址，初始 URL 校验就形同虚设——这条路径必须自己把关。
+    """
+
+    def __init__(self, *, allow_local: bool = False) -> None:
+        super().__init__()
+        self.allow_local = allow_local
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        from .net import validate_redirect
+
+        validate_redirect(newurl, original=req.full_url, allow_local=self.allow_local)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 class UrllibTransport:
     """标准库实现：不引入第三方 HTTP 依赖（O-02 方案 B 的依赖约束）。"""
+
+    def __init__(self, *, allow_local: bool = False) -> None:
+        self.opener = urllib.request.build_opener(
+            ValidatingRedirectHandler(allow_local=allow_local))
 
     def __call__(self, request: TransportRequest) -> TransportResponse:
         req = urllib.request.Request(request.url, data=request.body or None,
                                      headers=request.headers, method=request.method)
         try:
-            with urllib.request.urlopen(req, timeout=request.timeout_sec) as response:  # noqa: S310
+            with self.opener.open(req, timeout=request.timeout_sec) as response:  # noqa: S310
                 return TransportResponse(
                     status=response.status,
                     headers={k.lower(): v for k, v in response.headers.items()},

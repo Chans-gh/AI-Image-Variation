@@ -4,8 +4,11 @@
 """
 from __future__ import annotations
 
+import http.server
 import sys
+import threading
 import unittest
+import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "support"))
@@ -24,7 +27,12 @@ from iv_skill.provider.mock import (  # noqa: E402
 from iv_skill.provider.net import validate_endpoint, validate_redirect  # noqa: E402
 from iv_skill.provider.registry import build_adapter  # noqa: E402
 from iv_skill.provider.retry import Budget, RetryPolicy  # noqa: E402
-from iv_skill.provider.transport import resolve_secret  # noqa: E402
+from iv_skill.provider.transport import (  # noqa: E402
+    TransportRequest,
+    UrllibTransport,
+    ValidatingRedirectHandler,
+    resolve_secret,
+)
 from iv_skill.provider import GenerationRequest  # noqa: E402
 from shared.errors import IVError, is_known  # noqa: E402
 
@@ -251,6 +259,29 @@ class TestEndpointSecurity(unittest.TestCase):
             validate_redirect("https://10.0.0.5/x", original="https://api.example.com/v1",
                               resolver=PUBLIC_RESOLVER)
 
+    def test_redirect_handler_blocks_metadata(self):
+        """初始 URL 校验过不了重定向这道口子：169.254.169.254 必须在跟随之被拦下。"""
+        handler = ValidatingRedirectHandler(allow_local=False)
+        req = urllib.request.Request("https://api.example.com/v1/images")
+        with self.assertRaises(IVError) as ctx:
+            handler.redirect_request(req, None, 302, "Found", {},
+                                     "http://169.254.169.254/latest/meta-data/")
+        self.assertEqual(ctx.exception.code, "MODEL_CAPABILITY_UNSUPPORTED")
+
+    def test_redirect_handler_blocks_private_even_with_local_flag(self):
+        """allow_local 只放行 127.0.0.1/localhost，不能顺手放行整个私网。"""
+        handler = ValidatingRedirectHandler(allow_local=True)
+        req = urllib.request.Request("http://127.0.0.1:8000/v1")
+        with self.assertRaises(IVError):
+            handler.redirect_request(req, None, 302, "Found", {}, "http://10.0.0.5/v1")
+
+    def test_redirect_handler_blocks_plain_http_cross_host(self):
+        handler = ValidatingRedirectHandler(allow_local=False)
+        req = urllib.request.Request("https://api.example.com/v1")
+        with self.assertRaises(IVError):
+            handler.redirect_request(req, None, 302, "Found", {},
+                                     "http://api.other.example/v1")
+
     def test_build_external_adapter_validates_url(self):
         from iv_skill.provider.openai_compat import OpenAIImageAdapter
         from iv_skill.provider.mock import DEFAULT_CAPABILITY_DECLARATION
@@ -261,6 +292,69 @@ class TestEndpointSecurity(unittest.TestCase):
                           capability_declaration=dict(DEFAULT_CAPABILITY_DECLARATION),
                           base_url="http://api.example.com/v1")
         self.assertEqual(ctx.exception.code, "MODEL_CAPABILITY_UNSUPPORTED")
+
+
+
+class TestTransportRedirectIntegration(unittest.TestCase):
+    """用本地回环服务器验证：传输层真的走了校验，而不是只测了校验函数。"""
+
+    @classmethod
+    def setUpClass(cls):
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                if self.path == "/ok":
+                    body = b"ok"
+                    self.send_response(200)
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+                elif self.path == "/to-private":
+                    self.send_response(302)
+                    self.send_header("Location", "http://10.0.0.5/secret")
+                    self.end_headers()
+                elif self.path == "/to-local-ok":
+                    self.send_response(302)
+                    self.send_header("Location", f"/ok")
+                    self.end_headers()
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        cls.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+        cls.base = f"http://127.0.0.1:{cls.server.server_address[1]}"
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown()
+        cls.server.server_close()
+
+    def test_plain_200_passes(self):
+        transport = UrllibTransport(allow_local=True)
+        response = transport(TransportRequest(method="GET", url=f"{self.base}/ok"))
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.body, b"ok")
+
+    def test_same_host_redirect_followed_when_local_allowed(self):
+        transport = UrllibTransport(allow_local=True)
+        response = transport(TransportRequest(method="GET", url=f"{self.base}/to-local-ok"))
+        self.assertEqual(response.status, 200, "同源重定向不该被误杀")
+
+    def test_redirect_to_private_is_blocked(self):
+        transport = UrllibTransport(allow_local=True)
+        with self.assertRaises(IVError) as ctx:
+            transport(TransportRequest(method="GET", url=f"{self.base}/to-private"))
+        self.assertEqual(ctx.exception.code, "MODEL_CAPABILITY_UNSUPPORTED")
+
+    def test_local_redirect_denied_without_flag(self):
+        """allow_local 必须真的传进重定向校验，否则这道防线等于没接上。"""
+        transport = UrllibTransport(allow_local=False)
+        with self.assertRaises(IVError):
+            transport(TransportRequest(method="GET", url=f"{self.base}/to-local-ok"))
 
 
 if __name__ == "__main__":

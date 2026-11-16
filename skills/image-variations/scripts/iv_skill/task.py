@@ -246,9 +246,15 @@ def load_sequence_execution(previous_dir: str | Path, *, spec: dict, adapter, re
             record.attempts = 1
         frames.append(record)
     plan = _plan_dict(runner, spec=spec, resolved=resolved, anchor=anchor, reference=reference)
+    anchor_block = manifest.get("consistency_anchor") or {}
+    anchor_revision = anchor_block.get("sha256")
+    if resolved["input_type"] != "text_only" and not anchor_revision:
+        # 旧产物没有指纹：不能"猜"参考图没变，否则会把不同锚点的帧混进同一组
+        raise IVError("INVALID_INPUT",
+                      "上一版清单缺少参考图指纹（consistency_anchor.sha256），无法确认续跑用的是"
+                      "同一张参考图；请整组重建，或改用与该产物同版本的清单")
     return SequenceExecution(plan=plan, sequence_plan=planned, anchor=anchor.to_dict(),
-                             anchor_revision=(manifest.get("consistency_anchor", {}).get("revision")
-                                              or None),
+                             anchor_revision=anchor_revision,
                              frames=frames,
                              status=manifest["status"], budget=manifest.get("execution", {}),
                              warnings=list(manifest.get("warnings", [])),

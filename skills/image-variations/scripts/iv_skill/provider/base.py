@@ -57,7 +57,7 @@ class ProviderAdapter(ABC):
         if transport is None:
             from .transport import UrllibTransport
 
-            transport = UrllibTransport()
+            transport = UrllibTransport(allow_local=self.allow_local)
         self._transport = transport
         self._secret_resolver = secret_resolver
         self._resolved_secret: str | None = None
