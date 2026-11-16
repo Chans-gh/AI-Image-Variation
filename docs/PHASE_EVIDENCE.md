@@ -322,3 +322,19 @@ Grid 不加该字段——它没有续跑路径，且保持与基线示例一致
 `test_local_endpoint_denied_without_flag` 断言"transport 自己会拦初始 URL"——不对，
 初始 URL 校验是适配器的职责（`validate_endpoint`）。已改为验证 `allow_local` 真的接进了
 重定向校验，避免留一条假绿。
+
+## 仓库卫生（B 组）— 2026-11-16
+
+| 项 | 处理 |
+|---|---|
+| Actions 版本落后 | `actions/checkout` v4→v7、`actions/setup-python` v5→v7（同时消掉 Node 20 弃用告警） |
+| 依赖/动作漂移 | 新增 `.github/dependabot.yml`：github-actions 与 pip 每周一提 PR，走 CI 与分支保护 |
+| Dependabot 告警 | 仓库级开启 alerts 与 security updates（secret scanning / push protection 本就是开） |
+| Windows 换行风险 | 新增 `.gitattributes`：`* text=auto eol=lf`，**冻结基线 `-text` 放最后覆盖通配**（顺序反了会失效，已用 `git check-attr` 验证基线为 `text: unset`） |
+
+**复现验证**：
+
+```bash
+git check-attr text eol -- Image_Variations_Dual_Skill_SPEC_v1.1/README.md   # text: unset
+python shared/check_baseline.py                                              # 238/238
+```
