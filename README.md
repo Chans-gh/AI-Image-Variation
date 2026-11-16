@@ -64,15 +64,26 @@ echo '{"task_id":"demo","output_mode":"grid","grid_size":2,"direction":"light",
 
 ## 在 DeepSeek Harness（GUI）里使用
 
-仓库里的 `skills/image-variations/` 同时是一个 DSH 技能。装到技能目录后即可在本 GUI 直接触发：
+仓库里的 `skills/image-variations/` 同时是一个 DSH 技能。仓库**自带**发现入口：
+
+```text
+.dsh/skills/image-variations -> ../../skills/image-variations   （29 字节相对符号链接）
+```
+
+DSH 按优先级扫描技能根，`<项目根>/.dsh/skills`（rank 100）优先于全局 `~/.dsh/skills`
+（rank 400）。所以 **clone 之后在本仓库打开 DSH 即可直接触发，无需安装**：
+
+> "把这只杯子做成 2×2 的九宫格，light 方向"
+
+想让所有项目都能用，再补一条全局链接即可（同名时项目内优先）：
 
 ```bash
 ln -s "<REPO_ROOT>/skills/image-variations" ~/.dsh/skills/image-variations
 ```
 
-符号链接可用：`run_task.py` 用 `Path(__file__).resolve()` 定位仓库根，因此不管从哪个目录触发，
-基线、`shared/` 与 `.venv/` 都能找到。装好后宿主会把技能目录作为相对路径基准，
-`SKILL.md` §〇 已写明 `SKILL_DIR` 与 `REPO_ROOT` 的分工，避免路径歧义。
+符号链接不影响运行：`run_task.py` 用 `Path(__file__).resolve()` 定位仓库根，
+因此不管从哪个目录触发，基线、`shared/` 与 `.venv/` 都能找到。
+（手工拼路径时要注意 `cd -P`，原因见 `SKILL.md` §〇 —— bash 逻辑 `cd` 会把 `..` 算错。）
 
 ## 环境准备
 

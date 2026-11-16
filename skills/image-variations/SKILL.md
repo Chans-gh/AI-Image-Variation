@@ -18,19 +18,40 @@ description: >
 | 记号 | 位置 | 说明 |
 | --- | --- | --- |
 | `SKILL_DIR` | 本文件所在目录 | 宿主会把相对路径按这里解析；`scripts/`、`config/` 均相对它 |
-| `REPO_ROOT` | `SKILL_DIR/../..` | 仓库根：`.venv/`、`shared/`、`Image_Variations_Dual_Skill_SPEC_v1.1/` 都在这里 |
+| `REPO_ROOT` | `SKILL_DIR/../..`（**先解链**） | 仓库根：`.venv/`、`shared/`、`Image_Variations_Dual_Skill_SPEC_v1.1/` 都在这里 |
 
 **下面的基线路径、`shared/…`、`.venv/…`、`tests/…` 一律相对 `REPO_ROOT`；只有 §二 的
 `scripts/run_task.py` 相对 `SKILL_DIR`。** 在 DSH（或任何以技能目录为基准的宿主）里，
-先取两个根的绝对路径再拼：
+先取两个根的绝对路径再拼 —— **必须先解符号链接（`pwd -P`）**：
 
 ```bash
-SKILL_DIR="$(cd "$(dirname "<本文件路径>")" && pwd)"   # 例如 ~/.dsh/skills/image-variations
-REPO_ROOT="$(cd "$SKILL_DIR/../.." && pwd)"            # 例如本仓库根
+SKILL_DIR="$(cd "$(dirname "<本文件路径>")" && pwd -P)"   # -P 解链，否则下面的 .. 会算错
+REPO_ROOT="$(cd "$SKILL_DIR/../.." && pwd -P)"            # 本仓库根
 ```
 
-`SKILL_DIR` 可以是符号链接（安装到 `~/.dsh/skills/<name>` 的常见做法）：`run_task.py`
-用 `Path(__file__).resolve()` 定位 `REPO_ROOT`，所以链接不影响运行。
+为什么不加 `-P` 会错：bash 的 `cd` 默认是**逻辑模式**，`..` 先按文本消掉、不跟随符号链接。
+`<REPO_ROOT>/.dsh/skills/image-variations/../..` 会被文本消成 `<REPO_ROOT>/.dsh`，而不是仓库根。
+`run_task.py` 自身用 `Path(__file__).resolve()` 定位仓库根，**不受链接影响**（已实测）。
+
+### 宿主怎么发现这个 Skill（DSH）
+
+DSH 按优先级扫描多个技能根：
+
+| Rank | 来源 | 路径 |
+| --- | --- | --- |
+| 100 | `project-dsh` | `<项目根>/.dsh/skills` ← 本仓库用这个 |
+| 200 | `project-agents` | `<项目根>/.agents/skills` |
+| 300 | `custom` | 宿主配置的 `customSkillDirs` |
+| 400 | `user-dsh` | `<dshHome>/skills`（全局，所有项目可见） |
+
+项目根 = 最近的含 `.git` 的祖先目录。本仓库因此自带一个 29 字节的相对符号链接：
+
+```text
+.dsh/skills/image-variations -> ../../skills/image-variations
+```
+
+clone 之后直接在本仓库打开宿主即可发现本 Skill，**不需要额外安装**；想让所有项目都能用，
+再另外软链到 `<dshHome>/skills/image-variations`（rank 400，优先级更低，同名时以项目内为准）。
 
 基线根 `<REPO_ROOT>/Image_Variations_Dual_Skill_SPEC_v1.1`（下称 `SPEC`，**只读**）：
 
