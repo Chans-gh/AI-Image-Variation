@@ -13,15 +13,37 @@ description: >
 **唯一入口。** 编排写在这里；12 个方向的全文、Prompt 模板、Provider 兼容矩阵、错误码、
 阈值**不在这里**，一律在冻结基线内按需读取，避免出现两份互相漂移的真相。
 
-- 业务规则：`Image_Variations_Dual_Skill_SPEC_v1.1/specs/01-Image-Variations-Skill-v1.2.md`
-- 方向注册表：`.../references/directions/registry.json`
-- Prompt 模板：`.../references/grid-prompt.md`、`.../references/sequence-prompt.md`
-- Provider 兼容与安全：`.../references/provider-compat.md`
-- 错误码：`.../references/error-registry.json`
-- 打包规则：`.../references/packaging.md`
-- 契约：`.../contracts/{image-artifact,job-state,delivery-package}.schema.json`
+## 〇、两个根（先读这条，否则路径必错）
 
-基线为**只读**：哈希清单在 `shared/baseline.manifest.json`，`shared/check_baseline.py` 必须常绿。
+| 记号 | 位置 | 说明 |
+| --- | --- | --- |
+| `SKILL_DIR` | 本文件所在目录 | 宿主会把相对路径按这里解析；`scripts/`、`config/` 均相对它 |
+| `REPO_ROOT` | `SKILL_DIR/../..` | 仓库根：`.venv/`、`shared/`、`Image_Variations_Dual_Skill_SPEC_v1.1/` 都在这里 |
+
+**下面的基线路径、`shared/…`、`.venv/…`、`tests/…` 一律相对 `REPO_ROOT`；只有 §二 的
+`scripts/run_task.py` 相对 `SKILL_DIR`。** 在 DSH（或任何以技能目录为基准的宿主）里，
+先取两个根的绝对路径再拼：
+
+```bash
+SKILL_DIR="$(cd "$(dirname "<本文件路径>")" && pwd)"   # 例如 ~/.dsh/skills/image-variations
+REPO_ROOT="$(cd "$SKILL_DIR/../.." && pwd)"            # 例如本仓库根
+```
+
+`SKILL_DIR` 可以是符号链接（安装到 `~/.dsh/skills/<name>` 的常见做法）：`run_task.py`
+用 `Path(__file__).resolve()` 定位 `REPO_ROOT`，所以链接不影响运行。
+
+基线根 `<REPO_ROOT>/Image_Variations_Dual_Skill_SPEC_v1.1`（下称 `SPEC`，**只读**）：
+
+- 业务规则：`SPEC/specs/01-Image-Variations-Skill-v1.2.md`
+- 方向注册表：`SPEC/references/directions/registry.json`
+- Prompt 模板：`SPEC/references/grid-prompt.md`、`SPEC/references/sequence-prompt.md`
+- Provider 兼容与安全：`SPEC/references/provider-compat.md`
+- 错误码：`SPEC/references/error-registry.json`
+- 打包规则：`SPEC/references/packaging.md`
+- 契约：`SPEC/contracts/{image-artifact,job-state,delivery-package}.schema.json`
+
+基线为**只读**：哈希清单在 `<REPO_ROOT>/shared/baseline.manifest.json`，
+`<REPO_ROOT>/shared/check_baseline.py` 必须常绿。
 需要改规范请先说明理由并取得确认，不要在实现里悄悄"修正"基线。
 
 ## 一、五条不可违反的规则
@@ -38,6 +60,8 @@ description: >
    `delivery-package.json`；清单里的每个条目都必须真实存在且哈希一致。
 
 ## 二、怎么用
+
+以下命令**相对 `SKILL_DIR`**（见 §〇）：
 
 ```bash
 # 1) 预检：只算计划，不调用模型、不落盘
@@ -141,9 +165,13 @@ workspace/iv_<task_id>_<revision>/
 
 ## 六、开发与验证
 
+以下命令**相对 `REPO_ROOT`**（见 §〇）：
+
 ```bash
-.venv/bin/python skills/image-variations/tests/run_all.py     # 9 个套件（含基线 24/24 与契约 48/48）
-.venv/bin/python shared/check_baseline.py                     # 基线只读校验
+cd "$REPO_ROOT"
+.venv/bin/python skills/image-variations/tests/run_all.py   # 9 个套件（含基线 24/24 与契约 48/48）
+.venv/bin/python shared/check_baseline.py                   # 基线只读校验（必须 238/238）
 ```
 
-证据与已知偏差记录在 `docs/PHASE_EVIDENCE.md`。
+`REPO_ROOT/.venv` 是本仓库自带的 Python（3.12 + Pillow）；宿主另有可用解释器时也可用它跑，
+但依赖需含 `Pillow>=10`。证据与已知偏差记录在 `REPO_ROOT/docs/PHASE_EVIDENCE.md`。
