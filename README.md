@@ -62,6 +62,18 @@ echo '{"task_id":"demo","output_mode":"grid","grid_size":2,"direction":"light",
 
 `skills/image-variations/config/iv.config.json` 是唯一阈值来源（`tile_edge_min_px=1024`、`tile_edge_warn_px=768`、`tile_edge_hard_min_px=512`、`seam_pass=0.85`、`seam_risk=0.60`、Grid 尝试上限、单帧重试上限、预算）。规范已声明这些值**未经真实模型校准**，代码不得内联这些数值。
 
+## 在 DeepSeek Harness（GUI）里使用
+
+仓库里的 `skills/image-variations/` 同时是一个 DSH 技能。装到技能目录后即可在本 GUI 直接触发：
+
+```bash
+ln -s "<REPO_ROOT>/skills/image-variations" ~/.dsh/skills/image-variations
+```
+
+符号链接可用：`run_task.py` 用 `Path(__file__).resolve()` 定位仓库根，因此不管从哪个目录触发，
+基线、`shared/` 与 `.venv/` 都能找到。装好后宿主会把技能目录作为相对路径基准，
+`SKILL.md` §〇 已写明 `SKILL_DIR` 与 `REPO_ROOT` 的分工，避免路径歧义。
+
 ## 环境准备
 
 ```bash
