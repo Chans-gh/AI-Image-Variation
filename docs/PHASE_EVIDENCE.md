@@ -267,3 +267,58 @@ ModuleNotFoundError: No module named 'iv_skill'
 
 **教训**：`git status` 干净不代表仓库完整；发布前必须用**全新克隆**跑一次全量测试，
 而不是只在工作区跑。这条已加进发布检查清单。
+
+## 发布后审计修复 — 三个真缺陷（2026-11-16）
+
+上线后做了一轮"自查 + 探针实测"，抓到三个此前测试没覆盖到的真缺陷，均已在
+`fix/artifact-integrity-ssrf` 分支修复并补正/负例。
+
+### 缺陷 1：同 revision 重跑会把上一版残留文件混进交付包（高）
+
+探针：先跑满 4 帧，再用"第 4 帧永远失败"的 Provider 跑同一 revision →
+`manifest.json` 的 `images[]` 只有 `[1,2,3]`，但 `delivery-package.json` 把上一版残留的
+`images/04.png` 也登记进包，`verify_manifest` 还显示通过。打出来的 ZIP 会带一张
+"清单里没有、来源不明"的帧。根因：写盘是"就地覆盖"，只写本次成功的文件，不管孤儿文件。
+
+**修复**：
+1. 产物先写进同级隐藏暂存目录，全部自检通过后再原子替换（`artifact._staging_dir` / `_commit`）。
+   写到一半失败时旧产物**逐字节不变**，暂存目录不留痕。
+2. 新增不变量：目录内文件必须**恰好**等于 `images[] + manifest.json`，否则
+   `PACKAGE_MANIFEST_INVALID`（`_assert_files_match_manifest`）。
+
+**回归**：`test_rerun_same_revision_leaves_no_stale_files`、`test_stale_file_is_detected`，
+加上原有的同号可复现测试（图片逐字节一致）。
+
+### 缺陷 2：有图输入续跑不校验参考图是否同一张（高）
+
+内存态那条路有 `anchor_revision` 校验，但清单里从未落过这个指纹，`load_sequence_execution`
+只能传 `None` → CLI 级续跑形同虚设。
+
+探针：用 `ref_a` 生成到部分失败，续跑时传 `ref_b` → 直接 `completed`，无任何提示，
+一组图里混了两种锚点。
+
+**修复**：Sequence 清单的 `consistency_anchor` 增加 `sha256`（**只有哈希，没有图、没有路径**）；
+续跑时比对，不一致报 `INVALID_INPUT`；旧产物没有指纹则明确拒绝（不许"猜参考图没变"）。
+Grid 不加该字段——它没有续跑路径，且保持与基线示例一致。
+
+**回归**：`test_fingerprint_is_recorded_and_only_a_hash`（断言产物里没有原图字节/文件名）、
+`test_resume_same_reference_succeeds`、`test_resume_changed_reference_blocked`、
+`test_resume_legacy_manifest_without_fingerprint_blocked`。
+
+### 缺陷 3：HTTP 重定向不过 SSRF 校验（中）
+
+`net.validate_redirect()` 写好了却**没有任何生产代码调用**；`urllib` 默认自动跟随 302，
+于是"初始 URL 校验通过"之后仍可被重定向到 `169.254.169.254` 或私网地址。
+
+**修复**：`transport.ValidatingRedirectHandler` 在跟随重定向前调用 `validate_redirect`；
+`UrllibTransport` 改为持有带该校验的 opener，并把 `allow_local` 从适配器一路传进去。
+
+**回归**：`test_redirect_handler_blocks_metadata`、`..._blocks_private_even_with_local_flag`、
+`..._blocks_plain_http_cross_host`，以及本地回环服务器集成测试
+（同源 302 正常跟随、跨到私网 302 被拦、`allow_local=False` 时本地重定向被拦）。
+
+### 顺带纠正的一条错测试
+
+`test_local_endpoint_denied_without_flag` 断言"transport 自己会拦初始 URL"——不对，
+初始 URL 校验是适配器的职责（`validate_endpoint`）。已改为验证 `allow_local` 真的接进了
+重定向校验，避免留一条假绿。

@@ -10,6 +10,8 @@
 from __future__ import annotations
 
 import math
+import os
+import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,7 +20,8 @@ from shared.errors import IVError
 from shared.hashing import sha256_file
 from shared.jsonio import write_json
 from shared.paths import is_illegal_component
-from shared.pkg import MANIFEST_NAME, build_manifest, export_zip, verify_manifest, write_manifest
+from shared.pkg import (MANIFEST_NAME, build_manifest, export_zip, scan_package_files,
+                        verify_manifest, write_manifest)
 
 from .config import load_config
 from .executor import GridExecution
@@ -73,6 +76,49 @@ def _task_dir(workspace: Path, task_id: str, revision: str) -> Path:
     return Path(workspace).resolve() / f"iv_{task_id}_{revision}"
 
 
+def _staging_dir(final: Path) -> Path:
+    """产物先写到同级的隐藏暂存目录，全部自检通过后再原子换到最终名字。
+
+    这样"同 revision 重跑"不会留下上一版的孤儿文件（它们会被整体替换掉），
+    写到一半失败时旧产物也仍然完整。
+    """
+    staging = final.parent / f".{final.name}.staging"
+    if staging.exists():
+        shutil.rmtree(staging)
+    staging.mkdir(parents=True)
+    return staging
+
+
+def _commit(staging: Path, final: Path) -> None:
+    backup = final.parent / f".{final.name}.previous"
+    if backup.exists():
+        shutil.rmtree(backup)
+    if final.exists():
+        os.replace(final, backup)
+    try:
+        os.replace(staging, final)
+    except OSError:
+        if backup.exists() and not final.exists():
+            os.replace(backup, final)
+        raise
+    if backup.exists():
+        shutil.rmtree(backup)
+
+
+def _assert_files_match_manifest(root: Path, manifest: dict) -> None:
+    """产物目录里的文件必须**恰好**是 images[] + manifest.json。
+
+    这是"产物可验证"的底线：多一个文件＝包里有来源不明的内容（历史残留会被这里抓住），
+    少一个＝清单在说谎。
+    """
+    on_disk = set(scan_package_files(root))
+    expected = {image["path"] for image in manifest["images"]} | {"manifest.json"}
+    extra, missing = on_disk - expected, expected - on_disk
+    if extra or missing:
+        raise IVError("PACKAGE_MANIFEST_INVALID",
+                      f"产物文件与清单不一致：多余 {sorted(extra)}，缺失 {sorted(missing)}")
+
+
 def _write_png(path: Path, source, *, from_bytes: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if from_bytes:
@@ -91,10 +137,17 @@ def _entry_for(path: Path, rel: str, **extra) -> dict:
     return payload
 
 
-def _anchor_block(anchor: dict) -> dict:
-    """锚点写进清单时不得泄露参考图路径（私有附件不进产物包）。"""
+def _anchor_block(anchor: dict, reference_sha256: str | None = None) -> dict:
+    """锚点写进清单时不得泄露参考图路径（私有附件不进产物包）。
+
+    Sequence 额外落一个参考图 **sha256**（只有哈希，没有图也没有路径）：
+    续跑时必须能判断"还是同一张参考图"，否则会把不同锚点的帧混进同一组。
+    """
     if anchor.get("type") == "reference_image":
-        return {"type": "input_image", "reference": "not-exported"}
+        block = {"type": "input_image", "reference": "not-exported"}
+        if reference_sha256:
+            block["sha256"] = reference_sha256
+        return block
     if anchor.get("type") == "first_frame":
         return {"type": "first_frame", "asset_id": "frame_01"}
     return {"type": "text_description", "description": anchor.get("description", "")}
@@ -103,6 +156,7 @@ def _anchor_block(anchor: dict) -> dict:
 def _base_manifest(*, task_id: str, revision: str, parent: str | None, status: str, input_type: str,
                    execution_plan: dict, registry: DirectionRegistry, prompt_template_version: str,
                    anchor: dict, execution: dict, warnings: list[dict], errors: list[dict],
+                   reference_sha256: str | None = None,
                    validation: dict, created_at: str, completed_at: str,
                    retry_counts: dict | None = None) -> dict:
     payload = {
@@ -125,7 +179,7 @@ def _base_manifest(*, task_id: str, revision: str, parent: str | None, status: s
         "requested_resolution_policy": execution_plan["tier_policy"],
         "provider_type": execution_plan.get("provider_type"),
         "model_id": execution_plan.get("model_id"),
-        "consistency_anchor": _anchor_block(anchor),
+        "consistency_anchor": _anchor_block(anchor, reference_sha256),
         "images": [],
         "validation": validation,
         "execution": execution,
@@ -144,10 +198,22 @@ def write_grid_artifact(*, workspace: str | Path, task_id: str, execution: GridE
                         revision: str = "rev1", parent_revision: str | None = None,
                         pack_zip: bool = False, config: dict | None = None) -> ArtifactResult:
     config = config or load_config()
-    root = _task_dir(workspace, task_id, revision)
-    root.mkdir(parents=True, exist_ok=True)
+    final = _task_dir(workspace, task_id, revision)
+    root = _staging_dir(final)
     created_at = utc_now()
+    try:
+        return _write_grid_into(root, final, task_id=task_id, revision=revision,
+                                execution=execution, anchor=anchor, registry=registry,
+                                input_type=input_type, parent_revision=parent_revision,
+                                pack_zip=pack_zip, config=config, created_at=created_at)
+    except BaseException:
+        shutil.rmtree(root, ignore_errors=True)
+        raise
 
+
+def _write_grid_into(root: Path, final: Path, *, task_id: str, revision: str, execution, anchor,
+                     registry, input_type: str, parent_revision: str | None, pack_zip: bool,
+                     config: dict, created_at: str) -> ArtifactResult:
     board_path = root / "board.png"
     _write_png(board_path, execution.board.image)
     images: list[dict] = [_entry_for(board_path, "board.png", id="grid_board", kind="board", index=0,
@@ -180,7 +246,7 @@ def write_grid_artifact(*, workspace: str | Path, task_id: str, execution: GridE
     manifest["grid_size"] = execution.plan["grid_size"]
     manifest["grid_size_source"] = "user"
     manifest["images"] = images
-    return _finalise(root, task_id, revision, manifest, pack_zip, config)
+    return _finalise(root, final, task_id, revision, manifest, pack_zip, config)
 
 
 def write_sequence_artifact(*, workspace: str | Path, task_id: str, execution: SequenceExecution,
@@ -188,10 +254,22 @@ def write_sequence_artifact(*, workspace: str | Path, task_id: str, execution: S
                             revision: str = "rev1", parent_revision: str | None = None,
                             pack_zip: bool = False, config: dict | None = None) -> ArtifactResult:
     config = config or load_config()
-    root = _task_dir(workspace, task_id, revision)
-    root.mkdir(parents=True, exist_ok=True)
+    final = _task_dir(workspace, task_id, revision)
+    root = _staging_dir(final)
     created_at = utc_now()
+    try:
+        return _write_sequence_into(root, final, task_id=task_id, revision=revision,
+                                    execution=execution, anchor=anchor, registry=registry,
+                                    input_type=input_type, parent_revision=parent_revision,
+                                    pack_zip=pack_zip, config=config, created_at=created_at)
+    except BaseException:
+        shutil.rmtree(root, ignore_errors=True)
+        raise
 
+
+def _write_sequence_into(root: Path, final: Path, *, task_id: str, revision: str, execution,
+                         anchor, registry, input_type: str, parent_revision: str | None,
+                         pack_zip: bool, config: dict, created_at: str) -> ArtifactResult:
     images: list[dict] = []
     for frame in execution.frames:
         if frame.status != "completed" or not frame.image_bytes:
@@ -220,31 +298,34 @@ def write_sequence_artifact(*, workspace: str | Path, task_id: str, execution: S
         task_id=task_id, revision=revision, parent=parent_revision, status=execution.status,
         input_type=input_type, execution_plan=execution.plan, registry=registry,
         prompt_template_version=execution.sequence_plan.template_version, anchor=anchor,
+        reference_sha256=execution.anchor_revision,
         execution=execution.budget, warnings=execution.warnings, errors=execution.errors,
         validation=validation, created_at=created_at, completed_at=created_at,
         retry_counts=execution.retry_counts)
     manifest["branch"] = execution.plan["branch"]
     manifest["grid_size"] = None
     manifest["images"] = images
-    return _finalise(root, task_id, revision, manifest, pack_zip, config)
+    return _finalise(root, final, task_id, revision, manifest, pack_zip, config)
 
 
-def _finalise(root: Path, task_id: str, revision: str, manifest: dict, pack_zip: bool,
-              config: dict) -> ArtifactResult:
-    write_json(root / "manifest.json", manifest)
-    package = build_manifest(root, package_id=f"{task_id}_{revision}",
-                             package_type=ARTIFACT_TYPE, root_label=root.name)
-    write_manifest(root, package)
-    problems = verify_manifest(root, package)
+def _finalise(staging: Path, final: Path, task_id: str, revision: str, manifest: dict,
+              pack_zip: bool, config: dict) -> ArtifactResult:
+    write_json(staging / "manifest.json", manifest)
+    _assert_files_match_manifest(staging, manifest)
+    package = build_manifest(staging, package_id=f"{task_id}_{revision}",
+                             package_type=ARTIFACT_TYPE, root_label=final.name)
+    write_manifest(staging, package)
+    problems = verify_manifest(staging, package)
     if problems:
         raise IVError(problems[0][0], f"交付包清单自检未通过: {problems}")
+    _commit(staging, final)
 
     zip_path = None
     if pack_zip:
-        zip_path = root.parent / f"{root.name}.zip"
-        export_zip(root, zip_path, package, limits=config["packaging"])
-        package = build_manifest(root, package_id=f"{task_id}_{revision}",
-                                 package_type=ARTIFACT_TYPE, root_label=root.name)
-    return ArtifactResult(root=root, manifest_path=root / "manifest.json",
-                          package_path=root / MANIFEST_NAME, zip_path=zip_path,
+        zip_path = final.parent / f"{final.name}.zip"
+        export_zip(final, zip_path, package, limits=config["packaging"])
+        package = build_manifest(final, package_id=f"{task_id}_{revision}",
+                                 package_type=ARTIFACT_TYPE, root_label=final.name)
+    return ArtifactResult(root=final, manifest_path=final / "manifest.json",
+                          package_path=final / MANIFEST_NAME, zip_path=zip_path,
                           manifest=manifest, package=package)
