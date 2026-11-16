@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: 安装依赖（只需要 Pillow）
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: 基线只读校验（238/238）
+        run: python shared/check_baseline.py
+      - name: 基线自带契约（24/24）
+        run: python Image_Variations_Dual_Skill_SPEC_v1.1/tests/validate_example_contracts.py
+      - name: Skill 01 全量套件（9 套）
+        run: python skills/image-variations/tests/run_all.py
+      - name: 端到端冒烟（Grid + Sequence，合成 Provider）
+        run: |
+          echo '{"task_id":"ci_grid","output_mode":"grid","grid_size":2,"direction":"light",
+                 "input_type":"text_only","subject":"一只浅灰陶瓷杯",
+                 "provider":{"type":"mock_synthetic"},"pack_zip":true}' > /tmp/ci_grid.json
+          python skills/image-variations/scripts/run_task.py --input /tmp/ci_grid.json --workspace ./workspace
+          echo '{"task_id":"ci_seq","output_mode":"sequence","image_count":4,"branch":"progression",
+                 "direction":"light","input_type":"text_only","subject":"一只浅灰陶瓷杯",
+                 "provider":{"type":"mock_synthetic"}}' > /tmp/ci_seq.json
+          python skills/image-variations/scripts/run_task.py --input /tmp/ci_seq.json --workspace ./workspace
+          python - <<'PY'
+          import json, pathlib
+          for name in ("ci_grid", "ci_seq"):
+              manifest = json.loads(pathlib.Path(f"workspace/iv_{name}_rev1/manifest.json").read_text())
+              assert manifest["status"] == "completed", manifest["status"]
+              print(name, manifest["output_mode"], manifest["status"], len(manifest["images"]))
+          PY
+
+  tests-py39:
+    name: tests-py39
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+      - name: 安装依赖（只需要 Pillow）
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: 基线只读校验（238/238）
+        run: python shared/check_baseline.py
+      - name: Skill 01 全量套件（9 套）
+        run: python skills/image-variations/tests/run_all.py
