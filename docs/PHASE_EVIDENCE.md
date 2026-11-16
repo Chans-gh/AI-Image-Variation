@@ -76,3 +76,57 @@
 - 单格长边口径（同 Phase 1 记录）。
 - `provider-compat.md §1` 列出 `provider_type` / `base_url` / `api_key_secret_ref` / `model_id`，
   但**统一请求结构未定义**：本轮按 `ProviderRequest` 抽象实现，请求字段名以适配器版本锁定（`openai-image-compat/1.0`、`gemini-image-compat/1.0`），待真实 API 实测后回填。
+
+## Phase 3 — Grid 单次成板 + 校验切图（2026-11-16）
+
+### 证据
+
+| 套件 | 结果 |
+|---|---|
+| `test_grid.py` | `Ran 37 tests ... OK`（5.4s） |
+| `run_all.py` | `全部 7 个套件通过`（含基线只读 + 基线 24/24 + 契约 48/48） |
+
+### 本阶段落地
+
+- `prompt_builder.py`：从**只读基线** `references/grid-prompt.md` 提取模板正文（`grid-prompt-v1`），
+  组装 GLOBAL_RULES / SUBJECT_ANCHOR / DIRECTION_RULES / ASPECT_AND_SIZE / CELL_PLAN / OUTPUT_RULES；
+  模板缺小节、残留占位符、变化点重复、Grid 里出现叙事连词 → 一律显式报错。
+  12 方向规则全部来自 `directions/registry.json`，代码里**不硬编码方向措辞**。
+- `prompt_builder.py`（Sequence 侧同文件）：`build_frame_plan` 先于任何模型调用产出 N 条互不重复的
+  `change_point`，并按 §1 组装顺序拼装单帧 Prompt（§2 三分支正文注入 `[BRANCH_RULES]`）。
+- `seam.py`：按 §3.4 逐条实现 `boundary_gradient_v1`——
+  `boundary_diff`（边界两侧各 `band_px`）与 `interior_diff`（**同几何**、挪进格内）之比
+  → `seam_ratio`，再 `seam_score = clamp(1 − (ratio−1)/2, 0, 1)`；外加框线/留白带检测。
+- `grid.py`：解码 → 对齐到 N 的整数倍（超 `board_side_tolerance_ratio` 即失败，不静默裁）→
+  比例校验 → 行优先切图 → `crop_box` 覆盖/索引连续性校验 → 单格长边分级。
+- `executor.py`：`execute_grid()` 一次成板（每次重试 = 再要一张**整板**，绝不改成拼 N 张单图），
+  重试次数取 `retry.grid_max_attempts`，每次计入 `execution.calls_used`；
+  `risk` 可交付但必须带 `GRID_SEAM_RISK`。
+- `anchor.py`：锚点三态（`reference_image` / `first_frame` / `text_description`）。
+
+### 算法校准结果（合成图回归，非真实模型）
+
+| 输入 | seam_ratio | seam_score | 判定 |
+|---|---|---|---|
+| 连续整板（2/3/4 格） | 1.02–1.13 | 0.94–0.99 | pass |
+| 弱接缝（相邻格亮度差 1 级） | 1.13 | 0.93 | pass |
+| 弱接缝（差 3 级） | 1.48 | 0.76 | **risk** |
+| 硬接缝（异色格） | 11.9 | 0.00 | fail |
+| 白色框线 | 48.6 | 0.00 | fail（框线检测先命中） |
+| 纯色板 | 0.00 | 1.00 | fail（留白带检测命中） |
+
+### 本阶段发现（已修）
+
+1. `score = seam/(seam+ref)` 与 `1/(1+max(0,ratio-1))` 都是我自拟的映射，
+   **规范 D-24 已给出公式**；已改为 `clamp(1 − (seam_ratio − 1)/2, 0, 1)`（[specs/01 §3.4](Image_Variations_Dual_Skill_SPEC_v1.1/specs/01-Image-Variations-Skill-v1.2.md)）。
+2. 边界量用"跨边界相邻对"、参考量用"2px 条带均值"会造成 **口径偏差 2×**（线性渐变下必然 ratio≈2，
+   连续图被误判为有缝）。已改为两侧都用同一几何（band 宽条带、band 间距），只是把参考位置挪进格内。
+3. 纯色整板在"边界跳变 = 0"时曾拿满分 1.0，属于**用分数掩盖内容缺失**；现由留白带规则直接判失败。
+4. 夹具里的合成整板（`tests/support/renderer.py` 逐格贴图）本身就有硬接缝，
+   不能拿它当"无缝基准"；测试已改用可控的连续场造图。
+
+### 待确认（累计，均不改基线）
+
+- 单格长边口径：SPEC 01 §3.4 写"单格**长边**不低于 1024"，而基线 `tests/checks.py` 用**短边**。
+  当前实现：分级（`TILE_RESOLUTION_RISK/TOO_LOW`）按**长边**，`validation.tile_edge_px` 仍写短边。
+  3:4 画幅下两种口径会给出不同结论（3×3 @4K：短边 682 / 长边 909）。
