@@ -397,6 +397,19 @@ class TestResolvedSpec(unittest.TestCase):
         self.assertEqual(resolved["revision"], "rev1")
         self.assertIsNone(resolved["branch"])
 
+    def test_multiple_directions_rejected(self):
+        with self.assertRaises(IVError) as ctx:
+            _resolved(grid_spec(direction=["light", "view"]))
+        self.assertEqual(ctx.exception.code, "MULTIPLE_DIRECTIONS")
+        self.assertEqual(_resolved(grid_spec(direction=["light"]))["direction"], "light")
+
+    def test_unknown_direction_rejected(self):
+        with tempfile.TemporaryDirectory(prefix="iv_dir_") as tmp:
+            with self.assertRaises(IVError) as ctx:
+                run_task(grid_spec(direction="no_such_direction"), workspace=tmp)
+        self.assertEqual(ctx.exception.code, "INVALID_INPUT")
+        self.assertIn("no_such_direction", ctx.exception.message)
+
     def test_missing_fields_rejected(self):
         for missing in ("task_id", "output_mode", "direction", "input_type"):
             with self.subTest(missing=missing):

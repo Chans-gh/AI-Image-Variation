@@ -312,7 +312,7 @@ class TestGridPrompt(unittest.TestCase):
             build_grid_prompt(registry=REGISTRY, direction_key="light+scene", grid_size=2,
                               aspect_ratio="1:1", resolution_tier="2K", subject_anchor="x",
                               tile_edge_min_px=1024)
-        self.assertEqual(ctx.exception.code, "MULTIPLE_DIRECTIONS")
+        self.assertEqual(ctx.exception.code, "INVALID_INPUT")
 
     def test_direction_default_branch_available(self):
         for key in REGISTRY.keys():

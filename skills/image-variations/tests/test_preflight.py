@@ -102,6 +102,17 @@ class TestTierDerivation(unittest.TestCase):
             self.pick(2, requested="8K")
         self.assertEqual(ctx.exception.code, "UNSUPPORTED_RESOLUTION")
 
+    def test_requested_tier_too_small_names_the_user_choice(self):
+        cap = ModelCapability.from_declaration(MOCK_DECL)
+        problems = cap.check_baseline_requirements(
+            grid_size=3, aspect_ratio="3:4", tile_edge_min_px=1024,
+            sequence_input_type=None, requested_tier="1K")
+        self.assertEqual([p["code"] for p in problems], ["UNSUPPORTED_RESOLUTION"])
+        message = problems[0]["message"]
+        self.assertIn("你指定的 1K", message)
+        self.assertIn("4K", message, "必须告知可用档位，不允许静默降档")
+        self.assertNotIn("最高可用档位", message)
+
     def test_hard_min_blocked(self):
         cap = ModelCapability.from_declaration(
             {**MOCK_DECL, "supported_resolution_tiers": ["1K"],

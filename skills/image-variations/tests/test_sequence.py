@@ -174,7 +174,7 @@ class TestPlanning(unittest.TestCase):
             plan_sequence(registry=REGISTRY, direction_key="light+style", branch="variants",
                           frame_count=4, aspect_ratio="3:4", resolution_tier="1K",
                           anchor=ANCHOR, config=CONFIG)
-        self.assertEqual(ctx.exception.code, "MULTIPLE_DIRECTIONS")
+        self.assertEqual(ctx.exception.code, "INVALID_INPUT")
 
     def test_near_duplicate_change_points_blocked(self):
         class Duplicated(DirectionRegistry):
