@@ -177,3 +177,54 @@
   在注册表中新增（本轮未改基线）。
 - 计划期查重口径：同一轮内**维度**不得重复（完全判定）；跨轮复用维度时用"（第 k 轮）"显式标注。
   若认为跨轮复用也算近重复，需要提高 `sequence.max_frames` 或为方向补更多 `allowed_changes`。
+
+## Phase 5 — 打包、产物清单与 CLI 入口（2026-11-16）
+
+### 证据
+
+| 套件 | 结果 |
+|---|---|
+| `test_artifact.py` | `Ran 23 tests ... OK` |
+| `run_all.py` | `全部 9 个套件通过`（基线只读 238/238、基线契约 24/24、契约夹具 48/48、预检 37、Provider 33、适配器 19、Grid 39、Sequence 34、产物 23） |
+| 端到端 | Grid 与 Sequence 各跑一次 CLI，产物 `manifest.json` 通过基线 `image-artifact.schema.json` 校验，`delivery-package.json` 通过 `delivery-package.schema.json` 校验，`verify_manifest=[]`、`inspect_zip=[]` |
+
+### 交付形状
+
+- `SKILL.md`：唯一入口，只写编排、五条硬规则、分支判定表与产物契约，长文本全部指回只读基线。
+- `scripts/run_task.py`：JSON 进、JSON 出。`--preflight-only`（不调用不落盘）、
+  正式执行、`--retry-failed-of`（按原索引补失败帧，产出 rev2）。错误只输出错误码，不打印堆栈；
+  退出码 0/2/3 区分完成、被错误码阻断、任务描述非法。
+- `scripts/iv_skill/artifact.py`：`image-artifact` 清单 + `delivery-package` 清单 + 可选 ZIP。
+- `scripts/iv_skill/synthetic.py`：`mock_synthetic` 合成 Provider，产物如实标注，仅用于无密钥自检。
+- `scripts/iv_skill/task.py`：任务编排、参考图安全读取（workspace 内、越界即
+  `PATH_TRAVERSAL_BLOCKED`）、capability 缺省即拒、失败帧续跑。
+
+### 本阶段的关键取舍（写进清单语义，便于复核）
+
+1. **失败帧不进 `images[]`**。契约 `$defs.image` 把 `width/height/sha256` 列为必填，
+   失败的帧没有可验证的字节；若强行填值就是伪造。因此部分失败时只登记真实存在的图，
+   `image_count` 仍是请求张数，失败信息放 `errors[].asset_id` 与 `validation.failed_indices`，
+   索引保持原值不前移——这正是 AC-23/AC-31 要的"可交付且可复核"。
+   若希望失败帧也占 `images[]` 一个位（需要放宽 schema），请确认，我不擅自改基线。
+2. **`delivery-package.json` 不登记自己**（与基线示例一致），ZIP 内也不含它；
+   `archive` 哈希在打包后写回 `delivery-package.json`。
+3. **`consistency_anchor` 不落任何私有路径**：有图输入写
+   `{"type": "input_image", "reference": "not-exported"}`，纯文本图 1 写
+   `{"type": "first_frame", "asset_id": "frame_01"}`。测试断言原图字节与文件名都不在产物里。
+4. **同一修订号重复执行会就地覆盖**（图片逐字节可复现，`manifest.json` 因 `created_at` 不同而不同）。
+   若要"同号不同内容必须拒绝"，需要新增规则，本轮未加。
+5. `provider` 选项显式映射到适配器参数（`api_key_secret_ref` → `secret_ref`），
+   不做 `**kwargs` 透传，避免未知键静默失效。
+
+### 仍未做 / 待确认（累计）
+
+- **真实模型校准**：所有阈值目前只有合成图证据（见上文 Phase 3 校准段），未用真实模型验证过
+  `seam 0.85/0.60`、`1024/768/512`、`1.5×`。等真实 Key 到位后按同一套脚本复测。
+- **内置能力**：宿主未注入，`builtin` 一律 `BUILTIN_UNAVAILABLE`；外链真实 API 未联调
+  （`openai_image_compat/1.0`、`gemini_image_compat/1.0` 的字段名待真实响应确认）。
+- **`job-state` 持久化**：契约已加载校验，但队列/进度落盘与跨进程恢复未实现（当前是单进程
+  同步执行 + 产物级续跑）。是否需要真正的 job 文件，请确认优先级。
+- **错误码数量**：`ACCEPTANCE_MATRIX.md` 写"36"，注册表实为 37 条（`image_variations` 23 条），
+  基线内部不一致，未改。
+- **AC-25（方向扩展）**：注册表可扩展已验证，但"新增第 13 个方向"的正/负例尚未补测试。
+- **`/image-variations` 宿主调用**：`SKILL.md` 已就位，DSH 侧的触发接线未做。

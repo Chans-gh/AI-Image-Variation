@@ -24,6 +24,7 @@ SUITES = [
     ("适配器协议", [sys.executable, str(HERE / "test_adapters.py")]),
     ("Grid 成板与切图", [sys.executable, str(HERE / "test_grid.py")]),
     ("Sequence 计划与逐帧", [sys.executable, str(HERE / "test_sequence.py")]),
+    ("产物落盘与打包", [sys.executable, str(HERE / "test_artifact.py")]),
 ]
 
 
