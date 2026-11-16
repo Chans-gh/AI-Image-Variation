@@ -5,4 +5,4 @@
 # （Draft 2020-12 子集，纯标准库）。
 
 # 实测环境：Python 3.12.14 + Pillow 13.0.0；也在 Python 3.9.6 + Pillow 11.3.0 下全绿
-Pillow>=10.0
+Pillow>=13.0.0
