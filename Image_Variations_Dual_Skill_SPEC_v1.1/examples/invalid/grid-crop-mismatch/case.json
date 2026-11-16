@@ -1,0 +1,11 @@
+{
+  "check": "image_artifact",
+  "target": "manifest.json",
+  "schema": "image-artifact.schema.json",
+  "expect": {
+    "schema_fail": false,
+    "codes": [
+      "GRID_VALIDATION_FAILED"
+    ]
+  }
+}

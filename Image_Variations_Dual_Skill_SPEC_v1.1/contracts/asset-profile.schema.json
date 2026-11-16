@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/image-variations/contracts/asset-profile-1.0.schema.json",
+  "title": "Content Asset Profile v1.0",
+  "type": "object",
+  "required": ["asset_id", "source_order", "width", "height", "usable", "observations", "interpretations"],
+  "properties": {
+    "asset_id": {"type": "string", "minLength": 1},
+    "source_order": {"type": "integer", "minimum": 1},
+    "source_kind": {"enum": ["tile", "frame"]},
+    "width": {"type": "integer", "minimum": 1},
+    "height": {"type": "integer", "minimum": 1},
+    "aspect_ratio": {"type": "string", "minLength": 3},
+    "usable": {"type": "boolean"},
+    "quality": {
+      "type": "object",
+      "properties": {
+        "issues": {"type": "array", "items": {"enum": ["blurry", "truncated_subject", "low_resolution", "watermark", "text_artifact", "low_contrast", "over_exposed", "under_exposed"]}},
+        "long_edge_px": {"type": "integer", "minimum": 1},
+        "cover_ready": {"type": "boolean"},
+        "body_ready": {"type": "boolean"}
+      },
+      "additionalProperties": true
+    },
+    "subject": {"type": "string"},
+    "scene": {"type": "string"},
+    "notable_objects": {"type": "array", "items": {"type": "string"}},
+    "visual_style": {"type": "string"},
+    "highlights": {"type": "array", "items": {"type": "string"}},
+    "mood": {"type": "array", "items": {"type": "string"}},
+    "differences_from_others": {"type": "string"},
+    "near_duplicate_of": {"type": ["string", "null"]},
+    "cover_suitability": {"enum": ["strong", "acceptable", "weak", "unsuitable"]},
+    "body_suitability": {"enum": ["strong", "acceptable", "weak", "unsuitable"]},
+    "observations": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "interpretations": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "unusable_reason": {"type": "string"}
+  },
+  "additionalProperties": true,
+  "$comment": "observations 只能记录图片中看得见的内容；interpretations 是可辩论的解释。禁止把 Prompt 摘要当作观察事实（SPEC 02 §4.1）。"
+}

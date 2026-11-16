@@ -1,0 +1,12 @@
+{
+  "name": "invalid-hash-mismatch",
+  "note": "切图字节被改动：哈希不符必须拒绝消费",
+  "schema": null,
+  "check": "image_artifact",
+  "target": "manifest.json",
+  "expect": {
+    "codes": [
+      "SOURCE_ASSET_MISSING"
+    ]
+  }
+}

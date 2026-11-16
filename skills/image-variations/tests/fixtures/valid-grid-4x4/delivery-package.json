@@ -1,0 +1,119 @@
+{
+  "package_id": "pkg_valid-grid-4x4",
+  "package_type": "image_variations",
+  "root": "valid-grid-4x4",
+  "entries": [
+    {
+      "path": "board.png",
+      "kind": "image",
+      "sha256": "b3ae71b60b8c3e24fe81acf86501248edd4a364f973d0a35747653ff8995da73",
+      "bytes": 101288
+    },
+    {
+      "path": "images/01.png",
+      "kind": "image",
+      "sha256": "5fb938bf82fde43e6ec66486bccbdcd6f90f09d89e2e89c8380a30ba8afae7bb",
+      "bytes": 8107
+    },
+    {
+      "path": "images/02.png",
+      "kind": "image",
+      "sha256": "99d097e22fbc5737486413ad5dc7ffae522dd4a3c9a4fcb0000e964f80cdd7c6",
+      "bytes": 8633
+    },
+    {
+      "path": "images/03.png",
+      "kind": "image",
+      "sha256": "1e5f9653f14e36b27785c2dd5c4306d79c53567ada8c97ad4cb68638feedb48a",
+      "bytes": 8282
+    },
+    {
+      "path": "images/04.png",
+      "kind": "image",
+      "sha256": "320f7fd5445ce2667f3f00673b019fd9a4305db849cad90a7669f714a9b967cf",
+      "bytes": 8639
+    },
+    {
+      "path": "images/05.png",
+      "kind": "image",
+      "sha256": "f57c9752cc96245e17d84c66bcaaf5995b26eb31de97af7c2f0077436bc3fe54",
+      "bytes": 7913
+    },
+    {
+      "path": "images/06.png",
+      "kind": "image",
+      "sha256": "4679b82821bad9bdc34d54b9f0474487bc8d1180fbd113b88bfe081b889fae66",
+      "bytes": 8280
+    },
+    {
+      "path": "images/07.png",
+      "kind": "image",
+      "sha256": "aafdb0978de374689f08b07fd173024490b306e9f4ab74b89cca984d1912b361",
+      "bytes": 8087
+    },
+    {
+      "path": "images/08.png",
+      "kind": "image",
+      "sha256": "5b7e22c4972a26dcd3404fb463596699cddeafa8508567301fdd4e1470938e97",
+      "bytes": 8021
+    },
+    {
+      "path": "images/09.png",
+      "kind": "image",
+      "sha256": "4649e80a1003ade24b297de5db5882c3c90bca56271baf0c5519bb3972f0cdd3",
+      "bytes": 7971
+    },
+    {
+      "path": "images/10.png",
+      "kind": "image",
+      "sha256": "21639a9a84745a704908ed641f48a9c0d8c4c7283500cea6dbd54a0388ab101f",
+      "bytes": 7918
+    },
+    {
+      "path": "images/11.png",
+      "kind": "image",
+      "sha256": "54801f856f541d0acb4ec1cf337c031d5de144e8503aa5cbed1128884138948e",
+      "bytes": 8527
+    },
+    {
+      "path": "images/12.png",
+      "kind": "image",
+      "sha256": "0cf8db4a94213f238c40040b24c2eb128aa86b9faa02ba1cbb067bd92a7490bc",
+      "bytes": 8183
+    },
+    {
+      "path": "images/13.png",
+      "kind": "image",
+      "sha256": "555e94e61c9898d20097119e4140408b55b5e0ad1030ff47c3d30f8c41395419",
+      "bytes": 7922
+    },
+    {
+      "path": "images/14.png",
+      "kind": "image",
+      "sha256": "f014c2379e3e3517af8abd7e1ad7d16eec7d166cdf76f54ec4f0c9e363da6ae1",
+      "bytes": 8077
+    },
+    {
+      "path": "images/15.png",
+      "kind": "image",
+      "sha256": "ec83c49d0b902bd1999ed5418231563d6c250b67b81912c46f98b44da7248051",
+      "bytes": 8181
+    },
+    {
+      "path": "images/16.png",
+      "kind": "image",
+      "sha256": "f21e910870c1afd4f72ebbb14849903a6e154bdb49801dfd9fb16761cbd30231",
+      "bytes": 7905
+    },
+    {
+      "path": "manifest.json",
+      "kind": "metadata",
+      "sha256": "cbcd31edbe5f2627505189440b2a660edaee713f28c6a6cacbdd08a9dc55f732",
+      "bytes": 9515
+    }
+  ],
+  "manifest_path": "manifest.json",
+  "total_files": 18,
+  "total_bytes": 241449,
+  "created_at": "2026-11-16T09:54:05Z"
+}

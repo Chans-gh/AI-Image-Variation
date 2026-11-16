@@ -1,0 +1,11 @@
+{
+  "research_level": "R0",
+  "search_performed": false,
+  "status": "not_required",
+  "search_provider": null,
+  "tools": [],
+  "queries": [],
+  "searched_at": null,
+  "notes": "R0 示例：无外部研究，claims 为空。",
+  "claims": []
+}

@@ -1,0 +1,16 @@
+# 虚拟环境
+.venv/
+__pycache__/
+*.pyc
+
+# 运行产物（SPEC 00 §00.5：产物不提交 Git）
+workspace/
+out/
+iv_*/
+*.zip.tmp
+
+# 本地配置与密钥（SPEC 01 §9.5：密钥只走宿主密钥库引用，绝不入库）
+.env
+.env.*
+secrets/
+*.secret

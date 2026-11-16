@@ -1,0 +1,13 @@
+{
+  "name": "invalid-naming-tile-index",
+  "note": "tile.index 必须是 1..N² 连续唯一",
+  "schema": "image-artifact.schema.json",
+  "check": "image_artifact",
+  "target": "manifest.json",
+  "expect": {
+    "codes": [
+      "GRID_VALIDATION_FAILED"
+    ],
+    "schema_fail": false
+  }
+}

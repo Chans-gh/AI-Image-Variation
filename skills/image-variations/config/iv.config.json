@@ -1,0 +1,68 @@
+{
+  "config_version": "1.0",
+  "note": "Skill 01 唯一的阈值来源。规范已声明这些数值未经真实模型校准（DECISIONS E5、O-10）：真实服务实测后只改本文件，不得改动代码。",
+  "tile_edge_min_px": 1024,
+  "tile_edge_warn_px": 768,
+  "tile_edge_hard_min_px": 512,
+  "board_side_tolerance_ratio": 0.01,
+  "aspect_ratio_tolerance_ratio": 0.02,
+  "seam": {
+    "method": "boundary_gradient_v1",
+    "band_px": 2,
+    "epsilon": 0.000001,
+    "pass_threshold": 0.85,
+    "risk_threshold": 0.60,
+    "border_line_detect": {
+      "min_run_px": 3,
+      "min_contrast": 24.0,
+      "blank_band_std_max": 3.0
+    }
+  },
+  "retry": {
+    "grid_max_attempts": 3,
+    "frame_max_extra_retries": 2,
+    "backoff_base_sec": 1.0,
+    "backoff_max_sec": 30.0,
+    "jitter_ratio": 0.25,
+    "retry_on": ["RATE_LIMITED", "PROVIDER_TIMEOUT", "IMAGE_VALIDATION_FAILED", "GRID_VALIDATION_FAILED"],
+    "never_retry_on": ["AUTH_FAILED", "MODEL_REFUSAL", "UNSUPPORTED_RATIO", "UNSUPPORTED_RESOLUTION",
+                       "MODEL_CAPABILITY_UNSUPPORTED", "INVALID_INPUT", "INVALID_MODE_OR_COUNT",
+                       "MULTIPLE_DIRECTIONS", "REFERENCE_REQUIRED", "BUILTIN_UNAVAILABLE"]
+  },
+  "budget": {
+    "default_call_budget_limit": null,
+    "batch_default_max_items": 5,
+    "cost_per_call": {
+      "1K": 0.04,
+      "2K": 0.08,
+      "4K": 0.16
+    },
+    "cost_currency": "USD"
+  },
+  "sequence": {
+    "min_frames": 4,
+    "max_frames": 16,
+    "near_duplicate_similarity_max": 0.9
+  },
+  "grid": {
+    "allowed_sizes": [2, 3, 4]
+  },
+  "defaults": {
+    "output_mode": "grid",
+    "grid_size": 3,
+    "direction": "state",
+    "sequence_image_count": 4,
+    "text_only_aspect_ratio": "3:4",
+    "sequence_resolution_tier": "1K"
+  },
+  "local_endpoint": {
+    "allow_local_endpoint": false,
+    "allowed_hosts": ["127.0.0.1", "localhost"]
+  },
+  "packaging": {
+    "max_entry_bytes": 209715200,
+    "max_total_bytes": 2147483648,
+    "max_entries": 5000,
+    "max_compression_ratio": 200
+  }
+}

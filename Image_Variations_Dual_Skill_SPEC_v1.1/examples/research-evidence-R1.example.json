@@ -1,0 +1,31 @@
+{
+  "research_level": "R1",
+  "search_performed": true,
+  "status": "partially_verified",
+  "search_provider": "example-search",
+  "tools": [
+    "web_search"
+  ],
+  "queries": [
+    "光影方向 对 产品摄影 的影响"
+  ],
+  "searched_at": "2026-11-16T01:00:00Z",
+  "notes": "示例数据，非真实检索结果；用于演示 R1 证据结构与字段。",
+  "claims": [
+    {
+      "claim_id": "claim_001",
+      "claim": "侧光比正面光更容易表现材质表面纹理",
+      "support_status": "partial",
+      "source_type": "secondary",
+      "source_title": "示例来源标题（占位）",
+      "source_url": "https://example.invalid/lighting-texture",
+      "publisher": "示例出版方",
+      "published_at": "2025-06-01",
+      "retrieved_at": "2026-11-16T01:00:00Z",
+      "verified_at": "2026-11-16T01:00:00Z",
+      "used_by_content_ids": [
+        "wechat_001"
+      ]
+    }
+  ]
+}

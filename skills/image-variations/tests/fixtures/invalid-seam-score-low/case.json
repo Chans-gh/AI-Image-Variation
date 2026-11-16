@@ -1,0 +1,13 @@
+{
+  "name": "invalid-seam-score-low",
+  "note": "seam_score<0.60：必须进入重试，不得标记成功",
+  "schema": "image-artifact.schema.json",
+  "check": "image_artifact",
+  "target": "manifest.json",
+  "expect": {
+    "codes": [
+      "GRID_VALIDATION_FAILED"
+    ],
+    "schema_fail": false
+  }
+}

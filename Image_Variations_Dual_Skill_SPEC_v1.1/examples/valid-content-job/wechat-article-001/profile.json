@@ -1,0 +1,150 @@
+{
+  "asset_ids": [
+    "grid_img_01",
+    "grid_img_02",
+    "grid_img_03",
+    "grid_img_04"
+  ],
+  "profiles": [
+    {
+      "asset_id": "grid_img_01",
+      "source_order": 1,
+      "source_kind": "tile",
+      "width": 1024,
+      "height": 1024,
+      "aspect_ratio": "1:1",
+      "usable": true,
+      "quality": {
+        "issues": [],
+        "long_edge_px": 1024,
+        "cover_ready": true,
+        "body_ready": true
+      },
+      "subject": "合成测试图形",
+      "scene": "纯色背景",
+      "visual_style": "扁平图形",
+      "highlights": [
+        "对比清晰的色块"
+      ],
+      "mood": [
+        "中性"
+      ],
+      "differences_from_others": "配色与线条数量不同",
+      "near_duplicate_of": null,
+      "cover_suitability": "acceptable",
+      "body_suitability": "acceptable",
+      "observations": [
+        "画面为纯色底上的圆形与横线",
+        "四张图配色不同"
+      ],
+      "interpretations": [
+        "用于演示光影方向差异"
+      ]
+    },
+    {
+      "asset_id": "grid_img_02",
+      "source_order": 2,
+      "source_kind": "tile",
+      "width": 1024,
+      "height": 1024,
+      "aspect_ratio": "1:1",
+      "usable": true,
+      "quality": {
+        "issues": [],
+        "long_edge_px": 1024,
+        "cover_ready": true,
+        "body_ready": true
+      },
+      "subject": "合成测试图形",
+      "scene": "纯色背景",
+      "visual_style": "扁平图形",
+      "highlights": [
+        "对比清晰的色块"
+      ],
+      "mood": [
+        "中性"
+      ],
+      "differences_from_others": "配色与线条数量不同",
+      "near_duplicate_of": null,
+      "cover_suitability": "acceptable",
+      "body_suitability": "acceptable",
+      "observations": [
+        "画面为纯色底上的圆形与横线",
+        "四张图配色不同"
+      ],
+      "interpretations": [
+        "用于演示光影方向差异"
+      ]
+    },
+    {
+      "asset_id": "grid_img_03",
+      "source_order": 3,
+      "source_kind": "tile",
+      "width": 1024,
+      "height": 1024,
+      "aspect_ratio": "1:1",
+      "usable": true,
+      "quality": {
+        "issues": [],
+        "long_edge_px": 1024,
+        "cover_ready": true,
+        "body_ready": true
+      },
+      "subject": "合成测试图形",
+      "scene": "纯色背景",
+      "visual_style": "扁平图形",
+      "highlights": [
+        "对比清晰的色块"
+      ],
+      "mood": [
+        "中性"
+      ],
+      "differences_from_others": "配色与线条数量不同",
+      "near_duplicate_of": null,
+      "cover_suitability": "acceptable",
+      "body_suitability": "acceptable",
+      "observations": [
+        "画面为纯色底上的圆形与横线",
+        "四张图配色不同"
+      ],
+      "interpretations": [
+        "用于演示光影方向差异"
+      ]
+    },
+    {
+      "asset_id": "grid_img_04",
+      "source_order": 4,
+      "source_kind": "tile",
+      "width": 1024,
+      "height": 1024,
+      "aspect_ratio": "1:1",
+      "usable": true,
+      "quality": {
+        "issues": [],
+        "long_edge_px": 1024,
+        "cover_ready": true,
+        "body_ready": true
+      },
+      "subject": "合成测试图形",
+      "scene": "纯色背景",
+      "visual_style": "扁平图形",
+      "highlights": [
+        "对比清晰的色块"
+      ],
+      "mood": [
+        "中性"
+      ],
+      "differences_from_others": "配色与线条数量不同",
+      "near_duplicate_of": null,
+      "cover_suitability": "acceptable",
+      "body_suitability": "acceptable",
+      "observations": [
+        "画面为纯色底上的圆形与横线",
+        "四张图配色不同"
+      ],
+      "interpretations": [
+        "用于演示光影方向差异"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "invalid-package-undeclared-file",
+  "note": "存在未登记文件：清单覆盖率失败",
+  "schema": null,
+  "check": "delivery_package",
+  "target": "manifest.json",
+  "expect": {
+    "codes": [
+      "PACKAGE_MANIFEST_INVALID"
+    ]
+  }
+}

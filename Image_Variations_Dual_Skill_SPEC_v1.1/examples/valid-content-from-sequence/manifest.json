@@ -1,0 +1,112 @@
+{
+  "schema_version": "1.1",
+  "artifact_type": "content_publishing",
+  "content_job_id": "cp_sample_002",
+  "revision": "rev1",
+  "parent_revision": null,
+  "source": {
+    "task_id": "iv_seq_sample_001",
+    "artifact_revision": "rev1",
+    "schema_version": "1.1",
+    "output_mode": "sequence",
+    "direction": "light",
+    "branch": "progression",
+    "selected_asset_ids": [
+      "frame_01",
+      "frame_02",
+      "frame_03",
+      "frame_04"
+    ]
+  },
+  "status": "completed",
+  "batch": {
+    "batch_id": "batch_002",
+    "planned_item_count": 1,
+    "platforms": [
+      "xiaohongshu"
+    ],
+    "dedup_summary": "单篇，来自 Sequence 源，保留阶段顺序"
+  },
+  "items": [
+    {
+      "content_id": "xhs_002",
+      "content_revision": "rev1",
+      "platform": "xiaohongshu",
+      "topic_id": "topic_03",
+      "theme_id": "theme_03",
+      "topic_plan_file": {
+        "path": "xiaohongshu-note-001/topic-plan.json",
+        "sha256": "6af4b2749e18be544bd6588e647586dbe47d9946491ad75d3f320119dc43369d",
+        "bytes": 1614
+      },
+      "status": "completed",
+      "selected_asset_ids": [
+        "frame_01",
+        "frame_02",
+        "frame_03",
+        "frame_04"
+      ],
+      "claim_ids": [],
+      "research_level": "R0",
+      "research_status": "not_required",
+      "files": {
+        "note_json": {
+          "path": "xiaohongshu-note-001/note.json",
+          "sha256": "0e4fbf5e7d714f0104129f7791d56dbd2b1947cf3170ce992ecf018670cdec21",
+          "bytes": 536
+        },
+        "note_md": {
+          "path": "xiaohongshu-note-001/note.md",
+          "sha256": "5c19506414d09bef086f020749dc489c80cdfc21afd2dde42ab11e1993a83f5c",
+          "bytes": 225
+        }
+      },
+      "package_images": [
+        {
+          "path": "xiaohongshu-note-001/images/image-01.png",
+          "sha256": "6f2c5581f1f93f36538f0733517b356c91c97707a9b9465f4203f007234f9046",
+          "bytes": 6301
+        },
+        {
+          "path": "xiaohongshu-note-001/images/image-02.png",
+          "sha256": "0e3dd3b0bd6bfd66ddbd2adadb737ec0aa4bc994d11e2ad69e02eaaed780a748",
+          "bytes": 6313
+        },
+        {
+          "path": "xiaohongshu-note-001/images/image-03.png",
+          "sha256": "5fe2965b495ae0c0c6ee7e9614dc67c4a9c76cd6a5189b23f0ddfa21ba37dcbc",
+          "bytes": 6318
+        },
+        {
+          "path": "xiaohongshu-note-001/images/image-04.png",
+          "sha256": "81bdb36e88d7049d9d5511dc77c198651625741cec39c63260f049283297a3ff",
+          "bytes": 6329
+        }
+      ],
+      "profile_file": {
+        "path": "xiaohongshu-note-001/profile.json",
+        "sha256": "e0683f4acabfa4d710c27e1102abac9df9c6c785e292ed35df2fd9467462a83e",
+        "bytes": 3760
+      },
+      "validation": {
+        "passed": true,
+        "checks": [
+          "sequence_order",
+          "asset_refs",
+          "package_images"
+        ],
+        "failed_checks": []
+      }
+    }
+  ],
+  "execution": {
+    "text_calls_used": 1,
+    "image_ops_used": 0,
+    "search_calls_used": 0,
+    "call_budget_limit": 10,
+    "budget_exceeded": false
+  },
+  "warnings": [],
+  "created_at": "2026-11-16T01:00:00Z",
+  "completed_at": "2026-11-16T01:00:00Z"
+}

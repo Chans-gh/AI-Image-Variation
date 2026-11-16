@@ -1,0 +1,53 @@
+{
+  "package_id": "pkg_valid-grid-2x2",
+  "package_type": "image_variations",
+  "root": "valid-grid-2x2",
+  "entries": [
+    {
+      "path": "board.png",
+      "kind": "image",
+      "sha256": "7af3ca97a99c1fdc91e0982cd17ea27aac3b3e3e89fe97e8cd33c1976b0e274d",
+      "bytes": 11291
+    },
+    {
+      "path": "images/01.png",
+      "kind": "image",
+      "sha256": "7395f592c08cac3e0aee2ae1b6f4a493dd50a60cdc3404df10ba7c63ecb97cc8",
+      "bytes": 3554
+    },
+    {
+      "path": "images/02.png",
+      "kind": "image",
+      "sha256": "e0f48ca3f2eca83bc8b8ca901a4aefe4501b3df669037ef5e22ce66c299dda93",
+      "bytes": 3302
+    },
+    {
+      "path": "images/03.png",
+      "kind": "image",
+      "sha256": "09018d398549f78d4df4e2d61772469aff423159ab88fc80f9a30c918b8349b6",
+      "bytes": 3475
+    },
+    {
+      "path": "images/04.png",
+      "kind": "image",
+      "sha256": "1eaaabd0bf0787189bce9ff7e7da56d50b456c2aec1dac96ab6eb089775641d6",
+      "bytes": 3346
+    },
+    {
+      "path": "manifest.json",
+      "kind": "metadata",
+      "sha256": "c73c8af4b6b125d6341c4aea17c08f79c7c5b99d1bcbf69e0c04b6b83dd75cc6",
+      "bytes": 4061
+    },
+    {
+      "path": "../outside.png",
+      "kind": "image",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "bytes": 10
+    }
+  ],
+  "manifest_path": "manifest.json",
+  "total_files": 7,
+  "total_bytes": 29029,
+  "created_at": "2026-11-16T09:54:04Z"
+}

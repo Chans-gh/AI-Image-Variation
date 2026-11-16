@@ -1,0 +1,11 @@
+{
+  "check": "delivery_package",
+  "target": "delivery-package.json",
+  "schema": "delivery-package.schema.json",
+  "expect": {
+    "schema_fail": false,
+    "codes": [
+      "PACKAGE_MANIFEST_INVALID"
+    ]
+  }
+}

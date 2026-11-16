@@ -1,0 +1,13 @@
+{
+  "name": "invalid-schema-major",
+  "note": "主版本不支持：明确报错，不猜字段",
+  "schema": "image-artifact.schema.json",
+  "check": "image_artifact",
+  "target": "manifest.json",
+  "expect": {
+    "codes": [
+      "SCHEMA_MAJOR_UNSUPPORTED"
+    ],
+    "schema_fail": true
+  }
+}

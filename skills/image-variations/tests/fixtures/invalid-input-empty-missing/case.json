@@ -1,0 +1,11 @@
+{
+  "name": "invalid-input-empty-missing",
+  "note": "缺 input_type：契约 required 失败",
+  "schema": "image-artifact.schema.json",
+  "check": null,
+  "target": "manifest.json",
+  "expect": {
+    "codes": [],
+    "schema_fail": true
+  }
+}

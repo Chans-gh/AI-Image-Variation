@@ -1,0 +1,11 @@
+{
+  "name": "invalid-grid-structure-field",
+  "note": "Grid 模式缺 validation.grid_structure_passed：条件必填失败",
+  "schema": "image-artifact.schema.json",
+  "check": null,
+  "target": "manifest.json",
+  "expect": {
+    "codes": [],
+    "schema_fail": true
+  }
+}

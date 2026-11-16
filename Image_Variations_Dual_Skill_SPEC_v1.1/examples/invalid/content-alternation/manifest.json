@@ -1,0 +1,249 @@
+{
+  "schema_version": "1.1",
+  "artifact_type": "content_publishing",
+  "content_job_id": "cp_sample_001",
+  "revision": "rev1",
+  "parent_revision": null,
+  "source": {
+    "task_id": "iv_grid_sample_001",
+    "artifact_revision": "rev1",
+    "schema_version": "1.1",
+    "output_mode": "grid",
+    "direction": "light",
+    "branch": null,
+    "selected_asset_ids": [
+      "grid_img_01",
+      "grid_img_02",
+      "grid_img_03",
+      "grid_img_04"
+    ]
+  },
+  "status": "completed",
+  "batch": {
+    "batch_id": "batch_001",
+    "planned_item_count": 2,
+    "platforms": [
+      "wechat",
+      "xiaohongshu"
+    ],
+    "dedup_summary": "两篇主题不同：一篇完整图文展开，一篇清单式观察"
+  },
+  "items": [
+    {
+      "content_id": "wechat_001",
+      "content_revision": "rev1",
+      "platform": "wechat",
+      "topic_id": "topic_01",
+      "theme_id": "theme_01",
+      "topic_plan_file": {
+        "path": "wechat-article-001/topic-plan.json",
+        "sha256": "e4b044e6715616e5753159e3b50c786c8781ac12e23c277e1dff9f986e33f387",
+        "bytes": 1577
+      },
+      "status": "completed",
+      "selected_asset_ids": [
+        "grid_img_01",
+        "grid_img_02",
+        "grid_img_03",
+        "grid_img_04"
+      ],
+      "claim_ids": [],
+      "research_level": "R0",
+      "research_status": "not_required",
+      "research": {
+        "level": "R0",
+        "status": "not_required",
+        "search_performed": false,
+        "queries": []
+      },
+      "files": {
+        "article_json": {
+          "path": "wechat-article-001/article.json",
+          "sha256": "63f1bfbbd2987ea028d82168338882422401e89fe8e6af794fb73d8735bd895f",
+          "bytes": 1283
+        },
+        "article_md": {
+          "path": "wechat-article-001/article.md",
+          "sha256": "149ca4429f24af3b64cb36c7f8877c42fc31adbfa6878dfca7a9c121efd3dec7",
+          "bytes": 495
+        },
+        "article_html": {
+          "path": "wechat-article-001/article.html",
+          "sha256": "57bba1cef3440cfca2f111cb9215e82ae7666b842c682e10bde58e1ff3acea9e",
+          "bytes": 770
+        }
+      },
+      "package_images": [
+        {
+          "path": "wechat-article-001/images/image-01.png",
+          "sha256": "68116f5a94f63e1ffb6c83f344a3b5bde024d872a8679ed47c12793eb0f386e6",
+          "bytes": 7394
+        },
+        {
+          "path": "wechat-article-001/images/image-02.png",
+          "sha256": "7a9acf59880596b7da43f71389945f041542e6fa829b2c438ccb8d5ccae2a7a8",
+          "bytes": 7412
+        },
+        {
+          "path": "wechat-article-001/images/image-03.png",
+          "sha256": "866b0a2a3fe02a783a137f824bddc71b5b379207caa6052cf1b9ec88fd96702a",
+          "bytes": 7366
+        },
+        {
+          "path": "wechat-article-001/images/image-04.png",
+          "sha256": "bf9515f06a30eded51cbbcc64fd6ec60c3f32a51c5072432f33f601862e86e2a",
+          "bytes": 7394
+        }
+      ],
+      "cover_wide": {
+        "file": {
+          "path": "wechat-article-001/covers/cover-wide.png",
+          "sha256": "0be332acec1c34157e0f730fc9e43db0b4a298175f8f55ec8bccad518a626745",
+          "bytes": 4082
+        },
+        "source_asset_id": "grid_img_01",
+        "source_asset_long_edge_px": 1024,
+        "crop_box": [
+          0,
+          294,
+          1024,
+          730
+        ],
+        "target_ratio": "2.35:1",
+        "actual_width": 1024,
+        "actual_height": 436,
+        "fit_method": "crop",
+        "upscale_factor": 1.0,
+        "quality_risk": false
+      },
+      "cover_square": {
+        "file": {
+          "path": "wechat-article-001/covers/cover-square.png",
+          "sha256": "68116f5a94f63e1ffb6c83f344a3b5bde024d872a8679ed47c12793eb0f386e6",
+          "bytes": 7394
+        },
+        "source_asset_id": "grid_img_01",
+        "source_asset_long_edge_px": 1024,
+        "crop_box": [
+          0,
+          0,
+          1024,
+          1024
+        ],
+        "target_ratio": "1:1",
+        "actual_width": 1024,
+        "actual_height": 1024,
+        "fit_method": "crop",
+        "upscale_factor": 1.0,
+        "quality_risk": false
+      },
+      "profile_file": {
+        "path": "wechat-article-001/profile.json",
+        "sha256": "ed3eab4089840b99cf30df19445dbea53571f5e326e4c325365de0062a36ed1b",
+        "bytes": 3772
+      },
+      "validation": {
+        "passed": true,
+        "checks": [
+          "block_grammar",
+          "cover_ratios",
+          "cover_source",
+          "asset_refs",
+          "package_images"
+        ],
+        "scorecard": {
+          "asset_fit": 5,
+          "value": 4,
+          "distinctness": 4,
+          "verifiability": null,
+          "platform_fit": 4
+        }
+      }
+    },
+    {
+      "content_id": "xhs_001",
+      "content_revision": "rev1",
+      "platform": "xiaohongshu",
+      "topic_id": "topic_02",
+      "theme_id": "theme_02",
+      "topic_plan_file": {
+        "path": "xiaohongshu-note-001/topic-plan.json",
+        "sha256": "2ac4bcfcf69d80bf839107a99a235863cba2f8c361169b2712d0146f0ea99130",
+        "bytes": 1598
+      },
+      "status": "completed",
+      "selected_asset_ids": [
+        "grid_img_01",
+        "grid_img_02",
+        "grid_img_03",
+        "grid_img_04"
+      ],
+      "claim_ids": [],
+      "research_level": "R0",
+      "research_status": "not_required",
+      "research": {
+        "level": "R0",
+        "status": "not_required",
+        "search_performed": false
+      },
+      "files": {
+        "note_json": {
+          "path": "xiaohongshu-note-001/note.json",
+          "sha256": "dd3ef2a863e18f2f08b0447773f8fc072c501ce9d472e497a125d7b1b79321b2",
+          "bytes": 609
+        },
+        "note_md": {
+          "path": "xiaohongshu-note-001/note.md",
+          "sha256": "1156d4311bf3adf2081d260424e9fe26e384390d54857e9192ba317e25b958b2",
+          "bytes": 284
+        }
+      },
+      "package_images": [
+        {
+          "path": "xiaohongshu-note-001/images/image-01.png",
+          "sha256": "68116f5a94f63e1ffb6c83f344a3b5bde024d872a8679ed47c12793eb0f386e6",
+          "bytes": 7394
+        },
+        {
+          "path": "xiaohongshu-note-001/images/image-02.png",
+          "sha256": "7a9acf59880596b7da43f71389945f041542e6fa829b2c438ccb8d5ccae2a7a8",
+          "bytes": 7412
+        },
+        {
+          "path": "xiaohongshu-note-001/images/image-03.png",
+          "sha256": "866b0a2a3fe02a783a137f824bddc71b5b379207caa6052cf1b9ec88fd96702a",
+          "bytes": 7366
+        },
+        {
+          "path": "xiaohongshu-note-001/images/image-04.png",
+          "sha256": "bf9515f06a30eded51cbbcc64fd6ec60c3f32a51c5072432f33f601862e86e2a",
+          "bytes": 7394
+        }
+      ],
+      "profile_file": {
+        "path": "xiaohongshu-note-001/profile.json",
+        "sha256": "ed3eab4089840b99cf30df19445dbea53571f5e326e4c325365de0062a36ed1b",
+        "bytes": 3772
+      },
+      "validation": {
+        "passed": true,
+        "checks": [
+          "title_body_tags_comment",
+          "hashtags_in_body",
+          "asset_refs",
+          "package_images"
+        ]
+      }
+    }
+  ],
+  "execution": {
+    "text_calls_used": 2,
+    "image_ops_used": 2,
+    "search_calls_used": 0,
+    "call_budget_limit": 20,
+    "budget_exceeded": false
+  },
+  "warnings": [],
+  "created_at": "2026-11-16T01:00:00Z",
+  "completed_at": "2026-11-16T01:00:00Z"
+}

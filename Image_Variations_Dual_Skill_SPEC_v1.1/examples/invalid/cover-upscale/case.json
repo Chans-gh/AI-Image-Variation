@@ -1,0 +1,11 @@
+{
+  "check": "content_artifact",
+  "target": "manifest.json",
+  "schema": "content-artifact.schema.json",
+  "expect": {
+    "schema_fail": false,
+    "codes": [
+      "COVER_SOURCE_LOWRES"
+    ]
+  }
+}

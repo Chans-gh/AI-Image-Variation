@@ -1,0 +1,113 @@
+{
+  "package_id": "pkg_valid-sequence-16",
+  "package_type": "image_variations",
+  "root": "valid-sequence-16",
+  "entries": [
+    {
+      "path": "images/01.png",
+      "kind": "image",
+      "sha256": "7b43ed8cc4b5ae779a8230dbeab13b3151e8bd100aa9fb0a7db26866aa1d1eba",
+      "bytes": 7023
+    },
+    {
+      "path": "images/02.png",
+      "kind": "image",
+      "sha256": "d2eb9603976be8e0bbc38ffedb335a781f33dd631918e8fc75f061290a69ad55",
+      "bytes": 6818
+    },
+    {
+      "path": "images/03.png",
+      "kind": "image",
+      "sha256": "171fe83f3f1ff2d353c12395f0cc102cb32c8f738f63e303820518806de73061",
+      "bytes": 7174
+    },
+    {
+      "path": "images/04.png",
+      "kind": "image",
+      "sha256": "5e17b90da343d7011fb6fcef51b8db71d103d27324b89bf1fbfa28406a7b9e01",
+      "bytes": 6912
+    },
+    {
+      "path": "images/05.png",
+      "kind": "image",
+      "sha256": "8ca5075e124bac1529056c77753dd37541e89b72d901d198c0a731b84fc239f5",
+      "bytes": 6812
+    },
+    {
+      "path": "images/06.png",
+      "kind": "image",
+      "sha256": "259377c9264880df6cd2830469894d9a2b305bab00f2abd2a94941d3e5d984fe",
+      "bytes": 7147
+    },
+    {
+      "path": "images/07.png",
+      "kind": "image",
+      "sha256": "6b4badac89c35d51ba5a90ee630e14a9f40dbd4547512d2c0f26421ff6a0787e",
+      "bytes": 7150
+    },
+    {
+      "path": "images/08.png",
+      "kind": "image",
+      "sha256": "0a098e26803099a42b2c506292ae075c0727286fd47b32f13f870621a1983af9",
+      "bytes": 6890
+    },
+    {
+      "path": "images/09.png",
+      "kind": "image",
+      "sha256": "d5f1ba07e1e6aac23a1e1e6927f7bca01936bf1d802a65db1ffe0f47f9a8f091",
+      "bytes": 7296
+    },
+    {
+      "path": "images/10.png",
+      "kind": "image",
+      "sha256": "1dc3e942cf5f0dd3967d43f79e8ba3f9058289e5115b39f2ba8ffe1f76577c25",
+      "bytes": 7065
+    },
+    {
+      "path": "images/11.png",
+      "kind": "image",
+      "sha256": "583154596eb7048ecc186c183d9fe905b134f9501dd1575939dc94e2b1a0ca92",
+      "bytes": 7026
+    },
+    {
+      "path": "images/12.png",
+      "kind": "image",
+      "sha256": "cb5524c3748fa60a6b3d41b49efad2f7dd211b76a0b5e25c65297d2c771e2da7",
+      "bytes": 7153
+    },
+    {
+      "path": "images/13.png",
+      "kind": "image",
+      "sha256": "206356f5ca43f87e12525de53f1e1782daa905fcc49a7d7ff40fc0dba69f4e5a",
+      "bytes": 6973
+    },
+    {
+      "path": "images/14.png",
+      "kind": "image",
+      "sha256": "53301338ccb39c23f5a020c5686854d3b06240de9baebcc7955a713ae5d9897a",
+      "bytes": 7045
+    },
+    {
+      "path": "images/15.png",
+      "kind": "image",
+      "sha256": "78c48157949bcbff1da58f953f6a2240af564071fdd2b5491a3afdf0513718f9",
+      "bytes": 7439
+    },
+    {
+      "path": "images/16.png",
+      "kind": "image",
+      "sha256": "bb9d658ff55f72ed2f524a05a7a0b92225a249e51938ad7473d8713701d13c71",
+      "bytes": 7224
+    },
+    {
+      "path": "manifest.json",
+      "kind": "metadata",
+      "sha256": "e6d980610f1b7a4ecaf1ee90903f75382a15655848119fdc15758c613f004e17",
+      "bytes": 9506
+    }
+  ],
+  "manifest_path": "manifest.json",
+  "total_files": 17,
+  "total_bytes": 122653,
+  "created_at": "2026-11-16T09:54:05Z"
+}

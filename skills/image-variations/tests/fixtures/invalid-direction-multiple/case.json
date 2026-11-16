@@ -1,0 +1,12 @@
+{
+  "name": "invalid-direction-multiple",
+  "note": "方向必须是注册表内单一 key，多方向必须拒绝",
+  "schema": null,
+  "check": "direction_registry",
+  "target": "manifest.json",
+  "expect": {
+    "codes": [
+      "MULTIPLE_DIRECTIONS"
+    ]
+  }
+}

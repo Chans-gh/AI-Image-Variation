@@ -1,0 +1,13 @@
+{
+  "name": "invalid-capability-unsupported",
+  "note": "能力底线未声明：排产前阻断并指明缺失项",
+  "schema": "image-artifact.schema.json",
+  "check": "error_registry",
+  "target": "manifest.json",
+  "expect": {
+    "codes": [
+      "MODEL_CAPABILITY_UNSUPPORTED"
+    ],
+    "schema_fail": false
+  }
+}

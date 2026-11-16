@@ -1,0 +1,41 @@
+{
+  "package_id": "pkg_invalid-board-missing",
+  "package_type": "image_variations",
+  "root": "invalid-board-missing",
+  "entries": [
+    {
+      "path": "images/01.png",
+      "kind": "image",
+      "sha256": "7395f592c08cac3e0aee2ae1b6f4a493dd50a60cdc3404df10ba7c63ecb97cc8",
+      "bytes": 3554
+    },
+    {
+      "path": "images/02.png",
+      "kind": "image",
+      "sha256": "e0f48ca3f2eca83bc8b8ca901a4aefe4501b3df669037ef5e22ce66c299dda93",
+      "bytes": 3302
+    },
+    {
+      "path": "images/03.png",
+      "kind": "image",
+      "sha256": "09018d398549f78d4df4e2d61772469aff423159ab88fc80f9a30c918b8349b6",
+      "bytes": 3475
+    },
+    {
+      "path": "images/04.png",
+      "kind": "image",
+      "sha256": "1eaaabd0bf0787189bce9ff7e7da56d50b456c2aec1dac96ab6eb089775641d6",
+      "bytes": 3346
+    },
+    {
+      "path": "manifest.json",
+      "kind": "metadata",
+      "sha256": "85a970351a9485fefdaf9960a1612cc4b0241e60ea76371b1c1a5733dccb9358",
+      "bytes": 3759
+    }
+  ],
+  "manifest_path": "manifest.json",
+  "total_files": 5,
+  "total_bytes": 17436,
+  "created_at": "2026-11-16T09:54:05Z"
+}

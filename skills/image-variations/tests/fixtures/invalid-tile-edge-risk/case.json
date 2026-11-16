@@ -1,0 +1,13 @@
+{
+  "name": "invalid-tile-edge-risk",
+  "note": "4×4 单格 640px 长边：落在 512–768 风险区，必须警告且标注降档",
+  "schema": "image-artifact.schema.json",
+  "check": "image_artifact",
+  "target": "manifest.json",
+  "expect": {
+    "codes": [
+      "TILE_RESOLUTION_RISK"
+    ],
+    "schema_fail": false
+  }
+}

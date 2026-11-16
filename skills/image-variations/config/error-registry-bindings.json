@@ -1,0 +1,28 @@
+{
+  "bindings_version": "1.0",
+  "note": "验收项 ↔ 夹具 ↔ 期望错误码 的绑定。code 必须存在于基线 references/error-registry.json；本文件不新增错误码，只引用。",
+  "acceptance_bindings": [
+    {"ac": "AC-01", "fixtures": ["valid-grid-2x2", "valid-grid-3x3", "valid-grid-4x4", "valid-sequence-4", "valid-sequence-16"], "codes": []},
+    {"ac": "AC-02", "fixtures": ["invalid-input-empty-missing"], "codes": ["INVALID_INPUT"]},
+    {"ac": "AC-04", "fixtures": ["valid-grid-2x2", "valid-sequence-4"], "codes": []},
+    {"ac": "AC-05", "fixtures": ["valid-grid-2x2", "valid-grid-3x3", "valid-grid-4x4", "invalid-mode-count"], "codes": ["INVALID_MODE_OR_COUNT"]},
+    {"ac": "AC-06", "fixtures": ["valid-grid-3x3", "invalid-resolution-policy"], "codes": []},
+    {"ac": "AC-07", "fixtures": ["valid-sequence-4", "valid-sequence-16", "invalid-mode-count"], "codes": ["INVALID_MODE_OR_COUNT"]},
+    {"ac": "AC-09", "fixtures": ["valid-grid-3x3", "invalid-direction-multiple"], "codes": ["MULTIPLE_DIRECTIONS"]},
+    {"ac": "AC-10", "fixtures": ["valid-sequence-4", "valid-sequence-16", "invalid-branch-grid-not-null"], "codes": []},
+    {"ac": "AC-13", "fixtures": ["valid-grid-3x3", "invalid-seam-score-low", "invalid-board-missing"], "codes": ["GRID_SEAM_RISK", "GRID_VALIDATION_FAILED"]},
+    {"ac": "AC-14", "fixtures": ["valid-grid-2x2", "invalid-crop-box-mismatch", "invalid-tile-count-mismatch"], "codes": ["GRID_VALIDATION_FAILED"]},
+    {"ac": "AC-15", "fixtures": ["invalid-board-missing", "invalid-tile-count-mismatch"], "codes": ["GRID_VALIDATION_FAILED"]},
+    {"ac": "AC-20", "fixtures": ["invalid-capability-unsupported"], "codes": ["MODEL_CAPABILITY_UNSUPPORTED"]},
+    {"ac": "AC-21", "fixtures": ["valid-sequence-16"], "codes": []},
+    {"ac": "AC-22", "fixtures": ["invalid-path-traversal"], "codes": ["PATH_TRAVERSAL_BLOCKED"]},
+    {"ac": "AC-23", "fixtures": ["valid-sequence-16", "invalid-sequence-gap"], "codes": ["SOURCE_ARTIFACT_INCOMPLETE"]},
+    {"ac": "AC-24", "fixtures": ["valid-grid-2x2", "valid-sequence-4"], "codes": []},
+    {"ac": "AC-27", "fixtures": ["invalid-tile-edge-too-low", "invalid-tile-edge-risk"], "codes": ["TILE_RESOLUTION_TOO_LOW", "TILE_RESOLUTION_RISK"]},
+    {"ac": "AC-28", "fixtures": ["invalid-seam-score-low", "invalid-seam-score-missing"], "codes": ["GRID_VALIDATION_FAILED"]},
+    {"ac": "AC-29", "fixtures": ["invalid-budget-exceeded"], "codes": ["BUDGET_EXCEEDED"]},
+    {"ac": "AC-30", "fixtures": ["invalid-capability-unsupported"], "codes": ["MODEL_CAPABILITY_UNSUPPORTED", "REFERENCE_REQUIRED", "UNSUPPORTED_RATIO", "UNSUPPORTED_RESOLUTION", "BUILTIN_UNAVAILABLE"]},
+    {"ac": "AC-31", "fixtures": ["invalid-package-undeclared-file", "invalid-package-hash-mismatch"], "codes": ["PACKAGE_MANIFEST_INVALID"]},
+    {"ac": "AC-32", "fixtures": ["valid-grid-4x4", "invalid-naming-board-index", "invalid-naming-tile-index"], "codes": ["GRID_VALIDATION_FAILED"]}
+  ]
+}

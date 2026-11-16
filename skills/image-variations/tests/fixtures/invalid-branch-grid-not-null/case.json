@@ -1,0 +1,11 @@
+{
+  "name": "invalid-branch-grid-not-null",
+  "note": "Grid 不接收分支：branch 必须为 null",
+  "schema": "image-artifact.schema.json",
+  "check": null,
+  "target": "manifest.json",
+  "expect": {
+    "codes": [],
+    "schema_fail": true
+  }
+}

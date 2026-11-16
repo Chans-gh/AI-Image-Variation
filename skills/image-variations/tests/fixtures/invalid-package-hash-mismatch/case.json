@@ -1,0 +1,13 @@
+{
+  "name": "invalid-package-hash-mismatch",
+  "note": "清单哈希与实际文件不一致：PACKAGE_MANIFEST_INVALID",
+  "schema": "delivery-package.schema.json",
+  "check": "delivery_package",
+  "target": "manifest.json",
+  "expect": {
+    "codes": [
+      "PACKAGE_MANIFEST_INVALID"
+    ],
+    "schema_fail": false
+  }
+}
