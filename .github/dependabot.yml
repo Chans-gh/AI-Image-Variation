@@ -12,6 +12,9 @@ updates:
 
   - package-ecosystem: pip
     directory: "/"
+    # 只在新版本被现有约束排除时才抬下界；否则 pip 自己就会装最新版，
+    # 盲目抬下界只会砍掉兼容性（Pillow 13 要求 Python>=3.11，而本项目支持 3.9+）
+    versioning-strategy: increase-if-necessary
     schedule:
       interval: weekly
       day: monday

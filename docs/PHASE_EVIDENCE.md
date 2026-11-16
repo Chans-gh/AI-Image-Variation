@@ -338,3 +338,18 @@ Grid 不加该字段——它没有续跑路径，且保持与基线示例一致
 git check-attr text eol -- Image_Variations_Dual_Skill_SPEC_v1.1/README.md   # text: unset
 python shared/check_baseline.py                                              # 238/238
 ```
+
+### Dependabot 首个 PR 是假升级（2026-11-16）
+
+开启 Dependabot 后它立刻提了 #5：`pillow>=10.0` → `pillow>=13.0.0`。**已关闭不合并**：
+
+- `>=10.0` 本来就允许 13.0.0，pip 在新解释器上会自然装最新版；
+- 抬下界反而**砍掉兼容性**：PyPI 元数据显示 `Pillow 13.0.0 requires_python >=3.11`，
+  而 `Pillow 11.3.0` 是 `>=3.9`；本项目声明并实测支持 3.9（3.9.6 + Pillow 11.3.0 全绿）；
+- 后果在 CI 里直接复现：该 PR 的 `tests-py39` = **FAILURE**。
+
+处理：`.github/dependabot.yml` 的 pip 生态加 `versioning-strategy: increase-if-necessary`
+——只在新版本**真的被现有约束排除**时才抬下界。这类"下界通胀"PR 不会再产生。
+
+**教训**：Dependabot 的下界提升对"库"合理，对"声明了宽解释器支持矩阵的应用"是负价值；
+开自动升级的同时必须同时设 `versioning-strategy` 与解释器矩阵 CI，否则会静默缩小支持范围。
