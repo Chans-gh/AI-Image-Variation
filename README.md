@@ -1,5 +1,9 @@
 # Image Variations 双 Skill 实现仓库
 
+[![CI](https://github.com/Chans-gh/AI-Image-Variation/actions/workflows/ci.yml/badge.svg)](https://github.com/Chans-gh/AI-Image-Variation/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](requirements.txt)
+
 本仓库是 `Image_Variations_Dual_Skill_SPEC_v1.1` 规范包的**实现层**，按 SPEC 00 §00.4 的单仓库双 Skill 结构落地。
 
 | 目录 | 作用 | 写入权限 |
@@ -90,3 +94,19 @@ python -m pip install -r requirements.txt        # 只需要 Pillow
 > **发布检查清单**：`git status` 干净不代表仓库完整。发布前必须 `git clone` 到空目录，
 > 在**干净克隆**里跑一遍 `shared/check_baseline.py` 与 `tests/run_all.py`——
 > 本项目第一次发布就因此发现 `.gitignore` 的 `iv_*/` 把整个 `iv_skill/` 核心包静默漏掉了。
+
+## 持续集成
+
+`.github/workflows/ci.yml` 在每次 push / PR 上跑两个任务：
+
+| 任务 | 内容 |
+|---|---|
+| `tests`（Python 3.12） | 基线只读校验 → 基线自带契约 24/24 → Skill 01 全量 9 套件 → Grid/Sequence 端到端冒烟 |
+| `tests-py39`（Python 3.9） | 基线只读校验 → Skill 01 全量 9 套件 |
+
+`main` 分支已开启保护：**两个任务必须全绿、分支必须与 main 同步、禁止强推与删除**，
+改动请走「开分支 → 提 PR → 等 CI → 合并」。
+
+## 许可
+
+[MIT](LICENSE) © 2026 Chans-gh
