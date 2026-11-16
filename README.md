@@ -102,7 +102,7 @@ python -m pip install -r requirements.txt        # 只需要 Pillow
 | 任务 | 内容 |
 |---|---|
 | `tests`（Python 3.12） | 基线只读校验 → 基线自带契约 24/24 → Skill 01 全量 9 套件 → Grid/Sequence 端到端冒烟 |
-| `tests-py39`（Python 3.9） | 基线只读校验 → Skill 01 全量 9 套件 |
+| `tests-py39`（Python 3.9，ubuntu-24.04） | 基线只读校验 → Skill 01 全量 9 套件 |
 
 `main` 分支已开启保护：**两个任务必须全绿、分支必须与 main 同步、禁止强推与删除**，
 改动请走「开分支 → 提 PR → 等 CI → 合并」。
