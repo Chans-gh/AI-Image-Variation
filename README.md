@@ -58,6 +58,15 @@ echo '{"task_id":"demo","output_mode":"grid","grid_size":2,"direction":"light",
 
 `skills/image-variations/config/iv.config.json` 是唯一阈值来源（`tile_edge_min_px=1024`、`tile_edge_warn_px=768`、`tile_edge_hard_min_px=512`、`seam_pass=0.85`、`seam_risk=0.60`、Grid 尝试上限、单帧重试上限、预算）。规范已声明这些值**未经真实模型校准**，代码不得内联这些数值。
 
+## 环境准备
+
+```bash
+git clone git@github.com:Chans-gh/AI-Image-Variation.git
+cd AI-Image-Variation
+python3 -m venv .venv && . .venv/bin/activate
+python -m pip install -r requirements.txt        # 只需要 Pillow
+```
+
 ## 快速自检
 
 ```bash
@@ -75,3 +84,7 @@ echo '{"task_id":"demo","output_mode":"grid","grid_size":2,"direction":"light",
 ## 证据与阶段
 
 每阶段的测试输出与已知缺口记录在 [`docs/PHASE_EVIDENCE.md`](docs/PHASE_EVIDENCE.md)。
+
+> **发布检查清单**：`git status` 干净不代表仓库完整。发布前必须 `git clone` 到空目录，
+> 在**干净克隆**里跑一遍 `shared/check_baseline.py` 与 `tests/run_all.py`——
+> 本项目第一次发布就因此发现 `.gitignore` 的 `iv_*/` 把整个 `iv_skill/` 核心包静默漏掉了。
