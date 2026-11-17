@@ -9,6 +9,14 @@
 4. `seam_score = clamp(1 − (seam_ratio − 1) / 2, 0, 1)`；
 5. 分级：`≥0.85` 通过；`0.60–0.85` 记 `GRID_SEAM_RISK`（可交付但必须提示）；`<0.60` 失败。
 
+**分级模式（`seam.grade_mode`，配置项）**：
+    - `artifact_only`（当前默认，用户已确认）：冻结的 grid-prompt 模板要求"每一格都是完整构图"的
+      **接触表**，而 D-24 的跨格连续性对接触表在数学上不可达（实测 2×2 真实整板
+      `seam_ratio=8.57 → seam_score=0.000`）。此时结构判 `pass`，但强制带一条
+      `GRID_SEAM_RISK` 披露警告（字段照写，满足 AC-28），框线/留白带仍是硬门禁，
+      产物**不得宣称无缝**。
+    - `continuity_gate`：按规范原文的阈值分级（`<0.60` 阻断）。
+
 实现要点：
     - 用**局部**梯度做参考而不是全图均值。画面不同区域的纹理密度天然不同，
       用全图均值会把"本来就细腻的格线"误判成接缝、把"本来就粗糙处"的接缝漏掉。
@@ -184,11 +192,21 @@ def measure_seam(image: Image.Image, grid_size: int, config: dict | None = None)
 
 
 def classify_seam(report: SeamReport, config: dict | None = None) -> tuple[str, str | None]:
-    """返回 (verdict, code)：verdict ∈ pass / risk / fail。"""
+    """返回 (verdict, code)：verdict ∈ pass / risk / fail。
+
+    框线/留白带是**任何模式下的硬门禁**（它才是"有可见缝"的直接证据）；
+    连续性评分是否阻断由 `seam.grade_mode` 决定，见模块 docstring。
+    """
     config = config or load_config()
     seam_cfg = config["seam"]
     if report.has_border_line:
         return "fail", "GRID_VALIDATION_FAILED"
+    if seam_cfg.get("grade_mode", "continuity_gate") == "artifact_only":
+        # 接触表语义：结构（等大格子/无框/无留白带）已经由上面和 normalize_board 判定，
+        # 连续性不参与判定；但**必须披露**这不是无缝整板（规范的 GRID_SEAM_RISK 措辞要求）。
+        if report.score >= seam_cfg["pass_threshold"]:
+            return "pass", None
+        return "pass", "GRID_SEAM_RISK"
     if report.score >= seam_cfg["pass_threshold"]:
         return "pass", None
     if report.score >= seam_cfg["risk_threshold"]:

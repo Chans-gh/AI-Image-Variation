@@ -77,6 +77,9 @@ def execute_grid(*, adapter, direction_key: str, grid_size: int, aspect_ratio: s
         reference_bytes=len(reference_image.data) if reference_image else None)
     plan_result.raise_if_blocked()
     plan = plan_result.plan
+    # manifest 的 model_id 是追溯的关键字段：能力档案里没有它（声明只有 13 个字段），
+    # 必须由适配器回填真实模型名，否则产物里会留空串。
+    plan["model_id"] = getattr(adapter, "model_id", "")
 
     prompt = build_grid_prompt(registry=registry, direction_key=direction_key, grid_size=grid_size,
                                aspect_ratio=aspect_ratio, resolution_tier=plan["tier"],
@@ -119,7 +122,7 @@ def execute_grid(*, adapter, direction_key: str, grid_size: int, aspect_ratio: s
         attempt_warnings = list(processed.warnings)
         if code:
             attempt_warnings.append({"code": code, "message": _seam_message(verdict, seam, config),
-                                     "severity": "warning" if verdict == "risk" else "risk"})
+                                     "severity": "risk" if verdict == "fail" else "warning"})
         record = GridAttempt(attempt=attempt, postprocess=processed, seam=seam,
                              verdict=verdict, warnings=attempt_warnings)
         attempts.append(record)
@@ -128,6 +131,8 @@ def execute_grid(*, adapter, direction_key: str, grid_size: int, aspect_ratio: s
             validation = dict(processed.validation)
             validation.update(seam.to_validation())
             validation["grid_attempts"] = attempt
+            # 记下分级模式：否则后人看到一个 0.000 的 seam_score 却没阻断会以为漏判
+            validation["seam_gate_mode"] = config["seam"]["grade_mode"]
             if verdict == "risk":
                 validation["grid_structure_passed"] = True
             processed.validation = validation
@@ -158,6 +163,10 @@ def _seam_message(verdict: str, seam: SeamReport, config: dict) -> str:
     thresholds = config["seam"]
     if seam.has_border_line:
         return f"检测到边界高对比线/留白带 {seam.border_lines}，判为有可见接缝"
+    if thresholds.get("grade_mode") == "artifact_only":
+        return (f"接触表语义（grade_mode=artifact_only）：seam_score={seam.score:.3f} 仅作记录"
+                f"（分格连续性对「每格完整构图」的接触表不可达）；框线/留白带仍是硬门禁。"
+                f"本产物不是无缝整板，不得宣称无缝。")
     return (f"seam_score={seam.score:.3f}（pass≥{thresholds['pass_threshold']}, "
             f"risk≥{thresholds['risk_threshold']}）→ {verdict}")
 

@@ -78,6 +78,15 @@ def build_task_adapter(spec: dict, *, config: dict, grid_size: int):
         # O-02：宿主未注入内置能力时必须显式报码，不允许自动改走 external
         return build_adapter(provider_type="builtin")
     declaration = provider.get("capability")
+    base_url = provider.get("base_url", "")
+    model_id = provider.get("model_id", "")
+    profile_name = provider.get("capability_profile")
+    if declaration is None and profile_name:
+        # 能力档案：把实测回填的 ModelCapability 集中放一处，避免每个任务重复手写且写错
+        entry = _provider_profile(profile_name, provider_type)
+        declaration = entry["capability"]
+        base_url = base_url or entry.get("base_url", "")
+        model_id = model_id or entry.get("model_id", "")
     if not declaration:
         raise IVError("MODEL_CAPABILITY_UNSUPPORTED",
                       f"Provider {provider_type} 必须提供 capability 能力声明（底线清单）")
@@ -86,11 +95,29 @@ def build_task_adapter(spec: dict, *, config: dict, grid_size: int):
     return build_adapter(
         provider_type=provider_type,
         capability_declaration=declaration,
-        base_url=provider.get("base_url", ""),
+        base_url=base_url,
         secret_ref=provider.get("api_key_secret_ref") or provider.get("secret_ref"),
-        model_id=provider.get("model_id", ""),
+        model_id=model_id,
         request_timeout_sec=provider.get("request_timeout_sec"),
         config=config)
+
+
+def _provider_profile(name: str, provider_type: str) -> dict:
+    """按名字取能力档案；provider_type 必须匹配，避免张冠李戴。"""
+    from .config import load_provider_profiles
+
+    profiles = (load_provider_profiles().get("profiles") or {})
+    entry = profiles.get(name)
+    if entry is None:
+        raise IVError("MODEL_CAPABILITY_UNSUPPORTED",
+                      f"未知能力档案 {name!r}；可用 {sorted(profiles)}")
+    declared = entry.get("provider_type")
+    if declared and declared != provider_type:
+        raise IVError("INVALID_INPUT",
+                      f"能力档案 {name!r} 属于 {declared}，与 provider.type={provider_type} 不符")
+    if not isinstance(entry.get("capability"), dict):
+        raise IVError("MODEL_CAPABILITY_UNSUPPORTED", f"能力档案 {name!r} 缺少 capability 声明")
+    return entry
 
 
 def build_task_anchor(spec: dict, workspace: Path, reference: ReferenceImage | None) -> Anchor:
@@ -181,7 +208,18 @@ def run_task(spec: dict, *, workspace: str | Path | None = None) -> dict:
                                            parent_revision=resolved["parent"], pack_zip=pack_zip,
                                            config=config)
         summary = _execution_summary(execution, "sequence")
-    return {"ok": True, **summary, **artifact.to_dict()}
+    payload = {"ok": True, **summary, **artifact.to_dict()}
+    if spec.get("capture_prompt"):
+        # 提示词原文只回传给调用方（跑测台用于追溯），**不进 manifest.json / ZIP**。
+        payload["prompts"] = _capture_prompts(execution, resolved["mode"])
+    return payload
+
+
+def _capture_prompts(execution, mode: str) -> dict:
+    """把真正发出去的提示词原样取出：Grid 是整板提示词，Sequence 是每一帧的提示词。"""
+    if mode == "grid":
+        return {"board": execution.prompt_text}
+    return {f"frame_{frame.index:02d}": frame.prompt for frame in execution.frames}
 
 
 def _execution_summary(execution, mode: str) -> dict:

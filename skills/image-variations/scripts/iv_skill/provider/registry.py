@@ -15,12 +15,14 @@ from .capability import ModelCapability
 from .gemini_compat import GeminiImageAdapter
 from .mock import MockAdapter
 from .openai_compat import OpenAIImageAdapter
+from .qingshui_compat import QingshuiImageAdapter
 
 BUILTIN_FACTORY: Callable[[], ProviderAdapter] | None = None
 
 EXTERNAL_ADAPTERS = {
     "openai_image_compatible": OpenAIImageAdapter,
     "gemini_image_compatible": GeminiImageAdapter,
+    "qingshui_image_compatible": QingshuiImageAdapter,
     "mock": MockAdapter,
 }
 
