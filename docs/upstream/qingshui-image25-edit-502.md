@@ -79,6 +79,25 @@ F 例用的参考图资产：`POST /api/v1/assets` 上传得到
 两次都是**上游服务/容量**层面的拒绝，与请求参数、参考图传法无关；且**5 次全部扣算力、零产出**。
 说明该模型的图片编辑后端在这段时间内持续不可用（先是异常，后是容量不足）。
 
+## 同系列另一个模型也一样：`gpt-image-2.5-sunburst`
+
+17:29:57 用同一套生产代码复测 `gpt-image-2.5-sunburst`（带参考图）：
+
+```json
+{
+  "task_id": "2df38e9d-58e2-4999-b5f9-7803ddc6be63",
+  "model": "gpt-image-2.5-sunburst",
+  "status": "failed",
+  "progress": 0,
+  "quota_cost": 1,
+  "error_msg": "image gen failed: AIMS 图片编辑失败: AIMS API 错误 [503]: {\"error\":{\"message\":\"模型服务暂时不可用，请稍后重试\",\"code\":\"UPSTREAM_CAPACITY_UNAVAILABLE\"}}"
+}
+```
+
+而**同一个模型的纯文本生图正常**（1024×1024，136.8s，`quota_cost: 1`），说明问题只在编辑通路。
+
+汇总：`gpt-image-2.5-flare` 5 次（502×4、503×1）+ `gpt-image-2.5-sunburst` 1 次（503）= **6 次全失败，6 算力零产出**。
+
 ## 请求体（可原样重放）
 
 内联那三次：
