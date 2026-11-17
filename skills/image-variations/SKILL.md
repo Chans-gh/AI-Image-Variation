@@ -85,6 +85,9 @@ clone 之后直接在本仓库打开宿主即可发现本 Skill，**不需要额
 以下命令**相对 `SKILL_DIR`**（见 §〇）：
 
 ```bash
+# 0) 宿主部署后先自检：Python/依赖/仓库根/基线/技能配置/workspace 可写
+python scripts/run_task.py --self-check --pretty
+
 # 1) 预检：只算计划，不调用模型、不落盘
 python scripts/run_task.py --input task.json --preflight-only
 
@@ -114,6 +117,11 @@ python scripts/run_task.py --input task.json --retry-failed-of ./workspace/iv_<t
 ```
 
 `sequence` 额外需要 `branch`（方向支持的 3 个分支之一）与 `image_count`（4–16）。
+
+**退出码分两面**：`0` 完成 / `2` 被错误码阻断 / `3` 参数非法 —— 这三种走业务面，错误码取自
+基线 `references/error-registry.json`；`4` 是**部署不完整**，走 `deployment_error`，**不占用业务码**
+（装错了不是"能力不足/预算不足/校验不通过"，混在一起会让宿主误判）。部署形态、环境变量与
+常见部署错误见 [`DEPLOY.md`](DEPLOY.md)。
 
 真实 Provider：
 
@@ -190,7 +198,7 @@ workspace/iv_<task_id>_<revision>/
 
 ```bash
 cd "$REPO_ROOT"
-.venv/bin/python skills/image-variations/tests/run_all.py   # 9 个套件（含基线 24/24 与契约 48/48）
+.venv/bin/python skills/image-variations/tests/run_all.py   # 10 个套件（含基线 24/24 与契约 48/48）
 .venv/bin/python shared/check_baseline.py                   # 基线只读校验（必须 238/238）
 ```
 

@@ -353,3 +353,67 @@ python shared/check_baseline.py                                              # 2
 
 **教训**：Dependabot 的下界提升对"库"合理，对"声明了宽解释器支持矩阵的应用"是负价值；
 开自动升级的同时必须同时设 `versioning-strategy` 与解释器矩阵 CI，否则会静默缩小支持范围。
+
+## 多宿主部署支持（Workbuddy 等）— 2026-11-17
+
+目标：让同一个 Skill 在"技能目录 + shell + Python + 读写文件"的宿主上也能跑（DSH 之外）。
+
+### 先做仿真，再动代码
+
+| 仿真场景 | 结果 |
+| --- | --- |
+| 全新解释器（macOS 系统 Python **3.9.6**）+ 干净克隆 + 仅 `pip install -r requirements.txt`（装到 Pillow **11.3.0**） | ✅ 跑通，`completed`，seam 0.97188 |
+| 最小分发集 `skills/ + shared/ + Image_..._SPEC_v1.1/`（**4.6M**） | ✅ 跑通，seam 0.94641 |
+| **只搬技能目录** | ❌ `ModuleNotFoundError: No module named 'shared'`，**裸 traceback** |
+
+结论：跑是能跑的（整仓或最小分发集），但"只给技能目录"会崩，而且崩法违反第 1 条硬规则
+（失败必须显式、可判断）。于是补三件事。
+
+### 1) 技能目录自足：`requirements.txt` + `DEPLOY.md`
+
+- `skills/image-variations/requirements.txt`：技能内依赖声明（与仓库根同源）
+- `skills/image-variations/DEPLOY.md`：最小分发集、依赖、自检、两种布局、退出码、常见 stage
+
+### 2) 路径可配置：复用已有变量，不新增第三个
+
+发现 `shared/baseline.py` **本来就支持** `IV_REPO_ROOT` 与 `IV_BASELINE_ROOT`。
+所以没有引入 `IV_SPEC_ROOT`——**同一件事只留一个变量名**，避免两个名字长期漂移。
+`run_task.py` 的 bootstrap 现在按 `IV_REPO_ROOT` → 整仓布局 的顺序找 `shared/baseline.py`。
+
+实测（技能放在非标准深度 `app/skills/...`，依赖放 `vendor/`）：
+
+```
+IV_REPO_ROOT 未设  → {"ok": false, "deployment_error": {"stage": "bootstrap", "tried": [...]}} 退出码 4
+IV_REPO_ROOT=vendor → status=completed, seam=0.94641
+```
+
+### 3) 启动自检：`--self-check`，六项一次说清
+
+`python scripts/run_task.py --self-check --pretty` 检查：Python 版本 / Pillow / 仓库根 /
+基线 238 文件哈希 / 技能配置与 12 方向 / workspace 可写。
+
+**部署错误不占业务码**（用户确认的取舍）：业务码只有"能力不足 / 预算不足 / 校验不通过"三类，
+"装错了"不属于它们。混进业务码会让宿主把部署问题误判成模型问题、触发无意义重试。因此：
+
+| 退出码 | 含义 | 输出形状 |
+| --- | --- | --- |
+| 0 / 2 / 3 | 业务面 | `{"ok": false, "error": {"code": <注册表码>}}` |
+| **4** | **部署不完整** | `{"ok": false, "deployment_error": {"stage": ...}}` |
+
+九项 stage：`python` / `dependencies` / `bootstrap` / `import` / `baseline` / `skill_config` /
+`workspace`。**任何失败都不打印堆栈**（此前只搬技能目录会甩 traceback）。
+
+### 4) 第 10 个测试套件 + CI dogfood
+
+- `tests/test_deploy.py`：**13 项**，覆盖自检正常/异常、分离部署、只搬技能目录、无 `--input`、
+  依赖声明与文档在位、技能目录内不得带 `.venv`
+- `run_all.py` 套件数 9 → 10（CI 与 PR 模板的计数同步）
+- CI 两个 job 各加一步 `--self-check`（同时覆盖 3.12 与 3.9 两个解释器）
+- CI 冒烟里新增断言：模拟只搬技能目录时必须 **退出码 4 + 有 `deployment_error` + 无业务 `error`
+  + 无 traceback** —— 把这次的教训固化成回归
+
+### 未做（仍待外部输入）
+
+- 真实模型阈值校准（尤其近重复 0.9）
+- 两个兼容 profile 的字段名与真实响应比对
+- 宿主若要求非 `SKILL.md` 的清单名，需要一层极薄映射（`SKILL.md` 不含任何宿主细节）

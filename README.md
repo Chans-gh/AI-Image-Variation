@@ -85,6 +85,26 @@ ln -s "<REPO_ROOT>/skills/image-variations" ~/.dsh/skills/image-variations
 因此不管从哪个目录触发，基线、`shared/` 与 `.venv/` 都能找到。
 （手工拼路径时要注意 `cd -P`，原因见 `SKILL.md` §〇 —— bash 逻辑 `cd` 会把 `..` 算错。）
 
+## 部署到其他宿主（Workbuddy 等）
+
+宿主只要**技能目录 + 能执行 shell + Python + 读写文件**即可。最小分发集 4.6M：
+
+```text
+<REPO_ROOT>/{shared/, Image_Variations_Dual_Skill_SPEC_v1.1/, skills/, requirements.txt}
+```
+
+装完先自检（六项：Python / Pillow / 仓库根 / 基线 238 文件 / 技能配置与 12 方向 / workspace 可写）：
+
+```bash
+python "$SKILL_DIR/scripts/run_task.py" --self-check --pretty   # ok:true + 退出码 0 即可用
+```
+
+两种布局都支持：**整仓**（零配置）与**分离**（技能与依赖分开放，用 `IV_REPO_ROOT` /
+`IV_BASELINE_ROOT` 指定）。退出码 `4` 专表**部署不完整**，走 `deployment_error`、**不占用业务错误码**，
+所以宿主不会把"装错了"误判成模型问题而重试。完整说明见
+[`skills/image-variations/DEPLOY.md`](skills/image-variations/DEPLOY.md)。
+（**不要搬 `.venv/`**：里面是创建时的绝对路径，换机即坏。）
+
 ## 环境准备
 
 ```bash
@@ -124,8 +144,8 @@ python -m pip install -r requirements.txt        # 只需要 Pillow
 
 | 任务 | Runner | 内容 |
 |---|---|---|
-| `tests`（Python 3.12） | ubuntu-latest | 基线只读校验 → 基线自带契约 24/24 → Skill 01 全量 9 套件 → Grid/Sequence 端到端冒烟 |
-| `tests-py39`（Python 3.9） | ubuntu-24.04（钉住，26.04 已无 3.9） | 基线只读校验 → Skill 01 全量 9 套件 |
+| `tests`（Python 3.12） | ubuntu-latest | 基线只读校验 → 基线自带契约 24/24 → Skill 01 全量 10 套件 → Grid/Sequence 端到端冒烟 |
+| `tests-py39`（Python 3.9） | ubuntu-24.04（钉住，26.04 已无 3.9） | 基线只读校验 → Skill 01 全量 10 套件 |
 
 `main` 分支已开启保护：**两个任务必须全绿、分支必须与 main 同步、禁止强推与删除**，
 改动请走「开分支 → 提 PR → 等 CI → 合并」。Actions 与依赖版本由 Dependabot 每周提 PR，
