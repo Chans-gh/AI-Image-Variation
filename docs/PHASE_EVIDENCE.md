@@ -544,3 +544,27 @@ IV_REPO_ROOT=vendor → status=completed, seam=0.94641
 - 锚点文本**不加强**：实测带参考图时出现细节漂移（鞋型由穆勒高跟变露趾凉鞋、裙摆变长），
   用户裁定"就这样"，因此不改 `anchor.py` 的锚点描述文案。
 - 12 方向批量测试**暂停**，不再投入算力；跑测台与能力档案已就绪，随时可 `--dry-run` 复核计划后再开跑。
+
+## 模型探测：gpt-image-2.5-sunburst + 探针自身的两个 bug — 2026-11-17
+
+### 1. 探测结果（走生产适配器，各 1 算力）
+
+| 模式 | 结果 | 证据 |
+| --- | --- | --- |
+| `image_only`（带参考图） | ❌ 失败 | `AIMS 图片编辑失败 [503] UPSTREAM_CAPACITY_UNAVAILABLE`，5.9s，task_id `2df38e9d-58e2-4999-b5f9-7803ddc6be63`，扣 1 算力 |
+| `text_only` | ✅ 成功 | 1024×1024、1.67MB、**136.8s**（同 prompt 下 flare 约 20~90s，sunburst 明显更慢） |
+
+`gpt-image-2.5-flare` 5 次（502×4、503×1）+ `sunburst` 1 次（503）= **6 次全失败、6 算力零产出**，
+故两个档案都声明 `reference_image_input=false` / `image_edit=false`；
+新增能力档案 `qingshui_image2.5_sunburst`（含实测依据）。
+`error_detail.upstream_status=503` 说明刚修的"状态码取自响应原文"在真实故障上生效了。
+
+### 2. 探针脚本自身的两个 bug（已修，如实记录）
+
+| bug | 后果 | 修复 |
+| --- | --- | --- |
+| 给 `generate()` 传了 `sleep=lambda _s: None` | **3 秒轮询间隔变成死循环**，一次成功任务打出 **482 次轮询**（约 3.5 次/秒） | 去掉该参数；`single_attempt` 本就保证只提交一次，等待交给适配器按 `poll_interval_sec` |
+| `[SUBJECT_ANCHOR]` 槽位误填"锚点规则文本"而非主体描述 | 模型无主体可依，自己编了只小狗，该图不能用于主体保真度评估 | 改为真实主体描述（与正式任务一致） |
+
+生产路径（`run_task` → 执行器）本就不传 `sleep`，因此**不受第一个 bug 影响**；
+该 bug 只存在于我临时写的探针里。整板结构质量本身很好（4 格同一主体、4 种光照、无框可切）。

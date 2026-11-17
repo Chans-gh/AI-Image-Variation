@@ -11,13 +11,27 @@
         "text_to_image": true,
         "reference_image_input": false,
         "image_edit": false,
-        "supported_ratios": ["1:1", "3:4", "4:3", "16:9", "9:16"],
-        "supported_resolution_tiers": ["1K"],
-        "tier_to_board_side_px": {"1K": 1024},
+        "supported_ratios": [
+          "1:1",
+          "3:4",
+          "4:3",
+          "16:9",
+          "9:16"
+        ],
+        "supported_resolution_tiers": [
+          "1K"
+        ],
+        "tier_to_board_side_px": {
+          "1K": 1024
+        },
         "custom_dimensions": false,
         "supports_async_result": true,
         "max_input_bytes": 10485760,
-        "response_image_formats": ["png", "jpeg", "webp"],
+        "response_image_formats": [
+          "png",
+          "jpeg",
+          "webp"
+        ],
         "distinguishable_errors": true,
         "adapter_version": "qingshui-image/1.0",
         "multiple_independent_requests": true
@@ -39,13 +53,27 @@
         "text_to_image": true,
         "reference_image_input": true,
         "image_edit": true,
-        "supported_ratios": ["1:1", "3:4", "4:3", "16:9", "9:16"],
-        "supported_resolution_tiers": ["1K"],
-        "tier_to_board_side_px": {"1K": 1024},
+        "supported_ratios": [
+          "1:1",
+          "3:4",
+          "4:3",
+          "16:9",
+          "9:16"
+        ],
+        "supported_resolution_tiers": [
+          "1K"
+        ],
+        "tier_to_board_side_px": {
+          "1K": 1024
+        },
         "custom_dimensions": false,
         "supports_async_result": true,
         "max_input_bytes": 10485760,
-        "response_image_formats": ["png", "jpeg", "webp"],
+        "response_image_formats": [
+          "png",
+          "jpeg",
+          "webp"
+        ],
         "distinguishable_errors": true,
         "adapter_version": "qingshui-image/1.0",
         "multiple_independent_requests": true
@@ -74,7 +102,11 @@
         "custom_dimensions": false,
         "supports_async_result": true,
         "max_input_bytes": 10485760,
-        "response_image_formats": ["png", "jpeg", "webp"],
+        "response_image_formats": [
+          "png",
+          "jpeg",
+          "webp"
+        ],
         "distinguishable_errors": true,
         "adapter_version": "qingshui-image/1.0",
         "multiple_independent_requests": true
@@ -84,6 +116,48 @@
         "text_to_image": "3 次全部失败（含纯文本与带参考图）：AIMS 400 InvalidParameter —— \"image size must be at least 3686400 pixels\"（3.6864M = 1920²）",
         "root_cause": "qingshui 后端把 aspect_ratio 映射成 AIMS 的 size 参数，恒定约 1024²=1.05M 像素，永远达不到 Doubao 的 3.69M 下限 → 该模型在本平台不可用（属平台侧尺寸映射问题，建议反馈青水）",
         "consequence": "本档案不声明任何档位，任务引用它会按底线清单直接报错，不会白花算力"
+      }
+    },
+    "qingshui_image2.5_sunburst": {
+      "provider_type": "qingshui_image_compatible",
+      "model_id": "gpt-image-2.5-sunburst",
+      "base_url": "https://qingshui.hqqt.com",
+      "display_name": "青水 · GG 2.5 Sunburst（gpt-image-2.5-sunburst）",
+      "capability": {
+        "text_to_image": true,
+        "reference_image_input": false,
+        "image_edit": false,
+        "supported_ratios": [
+          "1:1",
+          "3:4",
+          "4:3",
+          "16:9",
+          "9:16"
+        ],
+        "supported_resolution_tiers": [
+          "1K"
+        ],
+        "tier_to_board_side_px": {
+          "1K": 1024
+        },
+        "custom_dimensions": false,
+        "supports_async_result": true,
+        "max_input_bytes": 10485760,
+        "response_image_formats": [
+          "png",
+          "jpeg",
+          "webp"
+        ],
+        "distinguishable_errors": true,
+        "adapter_version": "qingshui-image/1.0",
+        "multiple_independent_requests": true
+      },
+      "measured_at": "2026-11-17",
+      "evidence": {
+        "text_to_image": "1:1 纯文本成功，输出 1024×1024，耗时 136.8s（同 prompt 下 flare 约 20~90s，sunburst 明显更慢）",
+        "image_edit": "带参考图（平台上传 URL）失败：AIMS 图片编辑失败 [503] UPSTREAM_CAPACITY_UNAVAILABLE，5.9s，task_id 2df38e9d-58e2-4999-b5f9-7803ddc6be63，仍扣 1 算力",
+        "family_finding": "2026-11-17 实测 gpt-image-2.5-flare（5 次：502×4 + 503×1）与 sunburst（1 次：503）的图片编辑通路均不可用，故两个档案都声明 reference_image_input=false；若上游恢复，必须重新实测后改回 true",
+        "not_usable": "Grid 3×3/4×4 同 flare：整板恒 1024 → 单格不够，明确不可做"
       }
     }
   }
