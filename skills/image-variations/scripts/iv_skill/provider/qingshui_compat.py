@@ -46,6 +46,13 @@ _REFUSAL_HINTS = ("内容安全", "审核", "safety", "policy", "refus", "违规
 _SIZE_HINTS = ("must be at least", "pixels", "size` specified", "size specified", "尺寸")
 
 
+# 参考图公开 URL 的收回结果。**注意**：这个码不在冻结的 error-registry.json 里
+# （image_variations 的 23 个码没有覆盖"资产收回失败"），规范包只读、不得擅自新增，
+# 因此这里只作为**警告**如实披露，并在文案里标明待规范补充；绝不静默吞掉。
+CLEANUP_WARNING_CODE = "REFERENCE_CLEANUP_FAILED"
+CLEANUP_WARNING_NOTE = "（该码不在冻结错误码表内，待在规范中补充）"
+
+
 class QingshuiImageAdapter(ProviderAdapter):
     """青水图片适配器（`possible async`：`supports_async_result` 应为 true）。"""
 
@@ -60,6 +67,7 @@ class QingshuiImageAdapter(ProviderAdapter):
         self.download_timeout_sec = float(section.get("download_timeout_sec", 120))
         self.asset_cleanup = bool(section.get("asset_cleanup", True))
         self._reference_urls: list[str] = []
+        self._reference_warnings: list[dict] = []
         self._asset_hash: str | None = None
 
     # ------------------------------------------------------------------ 鉴权
@@ -256,16 +264,39 @@ class QingshuiImageAdapter(ProviderAdapter):
         return asset_hash, str(url)
 
     def _release_reference(self) -> None:
-        """用完即删：取消分享，公开 URL 立即 404。失败只记不抛，不掩盖生成结果。"""
+        """用完即删：取消分享，公开 URL 立即 404。
+
+        收回失败**不抛**（不能因此丢掉已经生成好的图），但也**绝不静默**：
+        记进 `_reference_warnings`，由调用方取走写进产物 `warnings[]`。
+        授权上传的前提就是"用完即删"，删失败必须让人看得见。
+        """
         if not (self.asset_cleanup and self._asset_hash):
             return
         asset_hash, self._asset_hash = self._asset_hash, None
+        url = f"{self.base_url.rstrip('/')}/api/v1/assets/{asset_hash}"
         try:
-            self._transport(TransportRequest(
-                "DELETE", f"{self.base_url.rstrip('/')}/api/v1/assets/{asset_hash}",
-                dict(self.auth_headers()), b"", self.timeout_sec))
-        except Exception:  # noqa: BLE001  收回失败不能影响生成结果的返回
-            pass
+            response = self._transport(TransportRequest(
+                "DELETE", url, dict(self.auth_headers()), b"", self.timeout_sec))
+        except Exception as exc:  # noqa: BLE001
+            self._record_cleanup_failure(asset_hash, f"请求异常：{type(exc).__name__}")
+            return
+        if response.status not in (200, 201, 202, 204, 404):
+            self._record_cleanup_failure(
+                asset_hash, redact(f"上游返回 {response.status}：{response.text()[:200]}",
+                                   [self._resolved_secret or ""]))
+
+    def _record_cleanup_failure(self, asset_hash: str, reason: str) -> None:
+        self._reference_warnings.append({
+            "code": CLEANUP_WARNING_CODE,
+            "message": (f"参考图临时分享收回失败（asset {asset_hash[:8]}…，{reason}）。"
+                        f"该 URL 可能仍然公开可达，请到青水后台手动删除。" + CLEANUP_WARNING_NOTE),
+            "severity": "warning",
+        })
+
+    def take_warnings(self) -> list[dict]:
+        """取走并清空警告（调用方负责写进产物 warnings[]）。"""
+        warnings, self._reference_warnings = self._reference_warnings, []
+        return warnings
 
     def _download(self, url: str) -> bytes:
         """下载上游图片字节；最终以字节为准，不把 URL 当引用。"""

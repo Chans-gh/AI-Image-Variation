@@ -245,6 +245,59 @@ class TestReferenceLifecycleRetry(unittest.TestCase):
                          [["https://cdn.example.com/ref.png"]] * 2)
 
 
+class TestReferenceCleanupVisibility(unittest.TestCase):
+    """授权上传的前提是"用完即删"：删失败必须可见，且不能因此丢掉已生成的图。"""
+
+    def _run(self, delete_response):
+        transport = FakeTransport([
+            json_response(201, {"success": True, "url": "https://cdn.example.com/ref.png",
+                                "asset": {"hash": "f" * 32}}),
+            SUBMITTED, COMPLETED, image_response(), delete_response,
+        ])
+        adapter = make_adapter(transport)
+        result = adapter.generate(request_with(reference_image=reference()),
+                                  policy=no_retry_policy(), sleep=lambda _s: None)
+        return adapter, result
+
+    def test_successful_cleanup_yields_no_warning(self):
+        adapter, result = self._run(json_response(200, {"success": True, "deleted": True}))
+        self.assertEqual(result.image_bytes, PNG)
+        self.assertEqual(adapter.take_warnings(), [])
+
+    def test_failed_delete_is_surfaced_but_delivery_kept(self):
+        adapter, result = self._run(json_response(500, {"error": "boom"}))
+        self.assertEqual(result.image_bytes, PNG, "收回失败不能丢掉已生成的图")
+        warnings = adapter.take_warnings()
+        self.assertEqual(len(warnings), 1)
+        self.assertEqual(warnings[0]["code"], "REFERENCE_CLEANUP_FAILED")
+        self.assertEqual(warnings[0]["severity"], "warning")
+        self.assertIn("手动删除", warnings[0]["message"])
+        self.assertIn("冻结错误码表", warnings[0]["message"])
+
+    def test_cleanup_request_exception_is_surfaced(self):
+        def explode(_request):
+            raise OSError("network down")
+
+        adapter, _ = self._run(explode)
+        warnings = adapter.take_warnings()
+        self.assertEqual([w["code"] for w in warnings], ["REFERENCE_CLEANUP_FAILED"])
+        self.assertIn("OSError", warnings[0]["message"])
+
+    def test_take_warnings_clears(self):
+        adapter, _ = self._run(json_response(503, {}))
+        self.assertEqual(len(adapter.take_warnings()), 1)
+        self.assertEqual(adapter.take_warnings(), [], "取走后不能重复计入")
+
+    def test_already_deleted_404_is_not_a_warning(self):
+        adapter, _ = self._run(json_response(404, {}))
+        self.assertEqual(adapter.take_warnings(), [], "本来就不存在，不算收回失败")
+
+    def test_secret_not_leaked_in_cleanup_warning(self):
+        adapter, _ = self._run(json_response(500, {"echo": SECRET}))
+        message = adapter.take_warnings()[0]["message"]
+        self.assertNotIn(SECRET, message)
+
+
 class TestErrorNormalisation(unittest.TestCase):
     def _failed_with(self, error_msg: str, **overrides):
         transport = FakeTransport([SUBMITTED, task_response("failed", error_msg=error_msg)])
@@ -353,6 +406,20 @@ class TestModelIdTraceability(unittest.TestCase):
                                  subject_anchor="一只浅灰陶瓷杯", registry=DirectionRegistry(),
                                  config=load_config(), sleep=lambda _s: None)
         self.assertEqual(execution.plan["model_id"], "test-model")
+
+
+class TestAdapterWarningDrain(unittest.TestCase):
+    def test_drain_calls_take_warnings_and_tolerates_plain_adapters(self):
+        from iv_skill.task import _drain_adapter_warnings
+
+        class WithWarnings:
+            def take_warnings(self):
+                return [{"code": "REFERENCE_CLEANUP_FAILED", "message": "x"}]
+
+        self.assertEqual([w["code"] for w in _drain_adapter_warnings(WithWarnings())],
+                         ["REFERENCE_CLEANUP_FAILED"])
+        self.assertEqual(_drain_adapter_warnings(object()), [],
+                         "没有 take_warnings 的适配器不能报错")
 
 
 class TestRegistrationAndProfiles(unittest.TestCase):

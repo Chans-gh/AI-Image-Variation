@@ -495,3 +495,31 @@ IV_REPO_ROOT=vendor → status=completed, seam=0.94641
 - 失败尝试的**逐次**失败原因未落盘（manifest 只记 `grid_attempts`），排查时缺一层证据。
 - `openai_image_compat` / `gemini_image_compat` 字段名仍是未验证假设。
 - 成本口径：`cost_estimate` 走配置里的 USD 单价，而青水实际计费是「算力/张」，两者未打通。
+
+## image_only 真实跑通 + 参考图收回失败不再静默 — 2026-11-17
+
+### 1. `image_only`（带参考图）真实产物
+
+- 任务：`light` 方向、Grid 2×2、`input_type=image_only`、能力档案 `qingshui_gemini3.1`、参考图 = 用户原图（1663×2048，`_reference/reference.jpg` 已入档）。
+- 结果：`status=completed`、`calls_used=1`（**一次成板，未重试**）、`elapsed_sec=151.77`、`grid_attempts=1`。
+- 产物：`board.png` 1024×1024 → `images/01..04.png` 各 512×512；`model_id=gemini-3.1-flash-image-preview`（`model_id_source=manifest`）。
+- `warnings`：`TILE_RESOLUTION_RISK`×2（512px 单格，已记降档）+ `GRID_SEAM_RISK`（接触表披露）。
+- **真实 `manifest.json` 与 `delivery-package.json` 再次通过冻结契约校验（0 问题）**。
+- 观察（如实记录）：四格彼此一致、场景/姿态/服装接近原图，但**细节有漂移**——鞋从黑色穆勒高跟鞋变成露趾高跟凉鞋、裙摆变长且有拖尾。属于提示词/模型保真度问题，不是流水线缺陷。
+
+### 2. 修掉两个"image_only 从没真跑过"才会暴露的 bug
+
+| bug | 影响 | 修复 |
+| --- | --- | --- |
+| 能力档案名写成 `qingshui_gemini31`（实为 `qingshui_gemini3.1`） | image_only 直接 `MODEL_CAPABILITY_UNSUPPORTED` | 跑测台常量改正 |
+| 参考图键名写成 `reference_image`（契约要求 `reference_path` 且**相对 workspace**） | image_only 直接 `INVALID_INPUT` | 跑测台改为把参考图复制进存档目录并用相对路径 |
+
+### 3. 参考图收回失败不再静默（授权前提的兜底）
+
+原实现 `except Exception: pass` —— 删失败完全不可见，而"用完即删"是用户授权上传的前提，属**静默降级**。
+
+- 现在：DELETE 的**状态码也检查**（此前连状态码都没看），异常与非 2xx 都记成警告 `REFERENCE_CLEANUP_FAILED`（`severity=warning`），文案含 asset 前缀、"URL 可能仍公开可达，请到青水后台手动删除"。
+- 生成结果不丢：收回失败不抛错，图照常交付；警告经 `take_warnings()` 由 `run_task` 并入产物 `warnings[]`；生成失败时并入 `IVError.detail["warnings"]`。
+- 404 视为"本来就不存在"，不算失败。
+- **注册表缺口**：冻结的 `error-registry.json` 里 image_variations 的 23 个码**没有覆盖"资产收回失败"**，规范包只读、不得擅自新增，故该码仅作警告并在文案里标注"该码不在冻结错误码表内，待在规范中补充"。需要用户在下一版规范里补一个正式码。
+- 测试：新增 7 例（成功无警告、500 有警告但交付保留、请求异常、取走即清、404 不算失败、密钥不外泄、drain 兼容无此方法的适配器）。

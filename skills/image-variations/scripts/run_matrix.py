@@ -89,6 +89,19 @@ def direction_keys() -> list[str]:
     return list(DirectionRegistry().keys())
 
 
+def stage_reference(out_dir: Path, reference: str) -> str:
+    """把参考图复制进存档目录，返回相对 out_dir 的路径。"""
+    source = Path(reference).resolve()
+    if not source.is_file():
+        raise FileNotFoundError(f"参考图不存在：{source}")
+    target_dir = out_dir / "_reference"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / source.name
+    if not target.is_file() or target.stat().st_size != source.stat().st_size:
+        target.write_bytes(source.read_bytes())
+    return f"_reference/{source.name}"
+
+
 def build_spec(*, cell_id: str, mode: str, direction: str, args, profile: str,
                subject: str) -> dict:
     spec: dict = {
@@ -114,7 +127,9 @@ def build_spec(*, cell_id: str, mode: str, direction: str, args, profile: str,
         spec["image_count"] = args.frames
         spec["branch"] = args.branch
     if args.input_type == "image_only":
-        spec["reference_image"] = str(Path(args.reference).resolve())
+        # 契约要求 reference_path **相对 workspace**；跑测台把参考图复制进存档目录，
+        # 这样每个批次自带原图、可回溯，也不会依赖外部路径。
+        spec["reference_path"] = args.reference_relpath
     return spec
 
 
@@ -446,6 +461,8 @@ def main(argv: list[str] | None = None) -> int:
 
     out_dir = Path(args.out).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+    args.reference_relpath = (stage_reference(out_dir, args.reference)
+                              if args.input_type == "image_only" else None)
     ledger_path = out_dir / "ledger.jsonl"
     budget = args.max_calls
     spent = 0
