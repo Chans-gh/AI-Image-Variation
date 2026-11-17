@@ -337,6 +337,9 @@ class SequenceRunner:
             len(reference_image.data) if reference_image else None)
         plan_result.raise_if_blocked()
         plan = plan_result.plan
+        # manifest 的 model_id 是追溯的关键字段：能力档案里没有它（声明只有 13 个字段），
+        # 必须由适配器回填真实模型名，否则产物里会留空串。
+        plan["model_id"] = getattr(self.adapter, "model_id", "")
         sequence_plan = plan_sequence(registry=self.registry, direction_key=direction_key,
                                       branch=branch, frame_count=frame_count,
                                       aspect_ratio=aspect_ratio, resolution_tier=plan["tier"],

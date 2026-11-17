@@ -417,3 +417,37 @@ IV_REPO_ROOT=vendor → status=completed, seam=0.94641
 - 真实模型阈值校准（尤其近重复 0.9）
 - 两个兼容 profile 的字段名与真实响应比对
 - 宿主若要求非 `SKILL.md` 的清单名，需要一层极薄映射（`SKILL.md` 不含任何宿主细节）
+
+## 把真实平台接入移出版本库（本地插件机制）— 2026-11-17
+
+**动机（用户要求）**：真实平台的域名、模型 ID、实测能力档案、上游问题记录都属于本机测试环境，
+不该出现在公开仓库里；同时也不能"删了就跑不起来"。
+
+### 做法：本地私有插件，缺失即显式报错
+
+| 位置 | 内容 |
+| --- | --- |
+| `iv_skill/local_plugins.py`（新增，进库） | 加载机制：扫描 `local/providers/*.py` 与 `local/<平台>/providers/*.py`，要求 `register(registry)` 或 `ADAPTERS`；合并本地能力档案与配置覆盖 |
+| `local/`（`.gitignore`） | 真实平台适配器、能力档案、配置覆盖、本地套件、上游记录 |
+| `provider/registry.py` | 去掉对平台适配器的硬导入，改为动态注册；未知 `provider_type` 的报错会指出本地插件目录 |
+| `config.py` | Provider 专属运行参数**不再作为必填键**（否则公开仓库缺它们就起不来）；本地覆盖只在**默认路径**下生效 |
+| `config/provider-profiles.json` | 改为空档案 + 字段模板 + "必须实测回填"的说明，不猜任何真实档位 |
+| `scripts/run_matrix.py` | 档案名、主体描述、密钥引用全部改为命令行/环境变量提供，代码里不写死平台 |
+| `tests/run_all.py` | 自动发现本地套件；`--no-local` 可精确复现 CI 形态 |
+
+### 关键设计点
+
+- **不静默降级**：插件加载失败 → `BUILTIN_UNAVAILABLE`；本地档案缺 `profiles` 段或 JSON 损坏 → `INVALID_INPUT`；
+  未注册的 `provider_type` → `MODEL_CAPABILITY_UNSUPPORTED` 且消息里给出本地插件目录。
+- **测试隔离**：用 `IV_CONFIG` / `IV_PROFILES` **注入**配置或档案时不合并本地覆盖，保证同一份测试在任何机器上结果一致。
+- **相对导入的坑**：适配器移出包后 `from . import ...` 失效（首次加载即报 `ImportError`），
+  改为 `iv_skill.*` 绝对导入并在插件里补 `register(registry)`。这个错误被新机制**显式抛出**而不是静默跳过，正好验证了设计意图。
+
+### 验证（两种形态 + 干净快照）
+
+| 场景 | 结果 |
+| --- | --- |
+| 本机（带 `local/`） | 12 个套件通过（含 1 个本地套件，39 例） |
+| `run_all.py --no-local` | 11 个套件通过 |
+| 干净快照（`git archive` 出将要提交的内容，无 `local/`） | 基线 238/238、11 套件通过、`--self-check` ok |
+| 新增 `test_local_plugins.py` | 18 例：加载/合并/缺失/坏插件/测试隔离/注册表集成 |

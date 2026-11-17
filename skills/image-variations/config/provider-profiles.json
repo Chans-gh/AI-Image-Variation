@@ -1,0 +1,42 @@
+{
+  "note": "本仓库不声明任何真实 Provider 的实测能力：能力声明必须由使用者在真实服务上测量后回填（见规则包 references/provider-compat.md §104）。\n把档案放到本地目录即可被加载（不进版本库）：local/provider-profiles.json 或 local/<平台>/provider-profiles.json，同名档案以本地为准。",
+  "profiles": {},
+  "_template": {
+    "_说明": "把下面这段复制到本地档案的 profiles 里，填成实测值；未实测的字段不要猜。",
+    "示例档案名": {
+      "provider_type": "openai_image_compatible",
+      "model_id": "<真实模型名>",
+      "base_url": "https://<你的服务>",
+      "display_name": "<展示名>",
+      "capability": {
+        "text_to_image": true,
+        "reference_image_input": false,
+        "image_edit": false,
+        "supported_ratios": [
+          "1:1"
+        ],
+        "supported_resolution_tiers": [
+          "1K"
+        ],
+        "tier_to_board_side_px": {
+          "1K": 1024
+        },
+        "custom_dimensions": false,
+        "supports_async_result": false,
+        "max_input_bytes": 10485760,
+        "response_image_formats": [
+          "png",
+          "jpeg",
+          "webp"
+        ],
+        "distinguishable_errors": false,
+        "adapter_version": "openai-image/1.0",
+        "multiple_independent_requests": true
+      },
+      "measured_at": "<YYYY-MM-DD>",
+      "evidence": {
+        "text_to_image": "<实测结论与证据路径>"
+      }
+    }
+  }
+}

@@ -9,14 +9,16 @@
   "seam": {
     "method": "boundary_gradient_v1",
     "band_px": 2,
-    "epsilon": 0.000001,
+    "epsilon": 1e-06,
     "pass_threshold": 0.85,
-    "risk_threshold": 0.60,
+    "risk_threshold": 0.6,
     "border_line_detect": {
       "min_run_px": 3,
       "min_contrast": 24.0,
       "blank_band_std_max": 3.0
-    }
+    },
+    "grade_mode": "artifact_only",
+    "grade_mode_note": "artifact_only（接触表语义，用户 2026-11-17 确认）：冻结的 grid-prompt 模板要求「每一格都是完整构图」，而 D-24 的跨格连续性对接触表在数学上不可达（实测 2×2 真实整板 seam_ratio=8.57 → seam_score=0.000，任何阈值都救不回）。故 continuity 评分只作警告记录（字段仍写 seam_score/seam_check_method，满足 AC-28），框线/留白带仍是硬门禁。continuity_gate = 规范原文的阈值分级，可随时切回。"
   },
   "retry": {
     "grid_max_attempts": 3,
@@ -24,10 +26,24 @@
     "backoff_base_sec": 1.0,
     "backoff_max_sec": 30.0,
     "jitter_ratio": 0.25,
-    "retry_on": ["RATE_LIMITED", "PROVIDER_TIMEOUT", "IMAGE_VALIDATION_FAILED", "GRID_VALIDATION_FAILED"],
-    "never_retry_on": ["AUTH_FAILED", "MODEL_REFUSAL", "UNSUPPORTED_RATIO", "UNSUPPORTED_RESOLUTION",
-                       "MODEL_CAPABILITY_UNSUPPORTED", "INVALID_INPUT", "INVALID_MODE_OR_COUNT",
-                       "MULTIPLE_DIRECTIONS", "REFERENCE_REQUIRED", "BUILTIN_UNAVAILABLE"]
+    "retry_on": [
+      "RATE_LIMITED",
+      "PROVIDER_TIMEOUT",
+      "IMAGE_VALIDATION_FAILED",
+      "GRID_VALIDATION_FAILED"
+    ],
+    "never_retry_on": [
+      "AUTH_FAILED",
+      "MODEL_REFUSAL",
+      "UNSUPPORTED_RATIO",
+      "UNSUPPORTED_RESOLUTION",
+      "MODEL_CAPABILITY_UNSUPPORTED",
+      "INVALID_INPUT",
+      "INVALID_MODE_OR_COUNT",
+      "MULTIPLE_DIRECTIONS",
+      "REFERENCE_REQUIRED",
+      "BUILTIN_UNAVAILABLE"
+    ]
   },
   "budget": {
     "default_call_budget_limit": null,
@@ -45,7 +61,11 @@
     "near_duplicate_similarity_max": 0.9
   },
   "grid": {
-    "allowed_sizes": [2, 3, 4]
+    "allowed_sizes": [
+      2,
+      3,
+      4
+    ]
   },
   "defaults": {
     "output_mode": "grid",
@@ -57,7 +77,10 @@
   },
   "local_endpoint": {
     "allow_local_endpoint": false,
-    "allowed_hosts": ["127.0.0.1", "localhost"]
+    "allowed_hosts": [
+      "127.0.0.1",
+      "localhost"
+    ]
   },
   "packaging": {
     "max_entry_bytes": 209715200,

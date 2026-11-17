@@ -5,6 +5,8 @@ __pycache__/
 
 # 运行产物（SPEC 00 §00.5：产物不提交 Git）
 workspace/
+# 本地私有扩展（真实平台接入/实测档案/上游报告），不进版本库
+local/
 out/
 /iv_*/
 *.zip.tmp

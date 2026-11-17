@@ -208,6 +208,18 @@ def self_check(workspace: Path, indent: int | None) -> int:
         return fail("workspace", f"workspace 不可写：{exc}",
                     hint="宿主需要允许在产物目录下创建与删除文件")
 
+    # 本地私有扩展：没有是正常情况（公开仓库/CI 都没有），有则如实列出。
+    # 插件损坏会在这里暴露，而不是等到真正调用模型时才炸。
+    try:
+        from iv_skill.local_plugins import status as local_status
+        from iv_skill.provider.registry import available_provider_types
+
+        report["local_extensions"] = local_status()
+        report["providers"] = available_provider_types()
+    except Exception as exc:  # noqa: BLE001
+        return fail("local_extensions", f"本地扩展加载失败：{exc}",
+                    hint="检查 local/providers/ 下的插件是否可导入（它不该让自检崩掉）")
+
     _emit(report, indent)
     return EXIT_OK
 

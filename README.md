@@ -126,9 +126,38 @@ python -m pip install -r requirements.txt        # 只需要 Pillow
 # Skill 01 契约与夹具
 .venv/bin/python skills/image-variations/tests/run_contract_tests.py
 
-# Skill 01 全量
+# Skill 01 全量（会自动带上本地私有套件）
 .venv/bin/python skills/image-variations/tests/run_all.py
+
+# 模拟 CI：不带任何本地扩展
+.venv/bin/python skills/image-variations/tests/run_all.py --no-local
 ```
+
+### 本地私有扩展（不进版本库）
+
+本仓库**只带通用适配器**（`openai_image_compatible` / `gemini_image_compatible` / `mock`）
+与一个加载机制；真实平台接入（域名、模型 ID、按实测回填的能力档案、上游问题记录）
+属于本机测试环境，放在 `local/`（已在 `.gitignore`）：
+
+```
+local/                               # 或用 IV_LOCAL_ROOT 指到别处
+├── <平台>/providers/<平台>_compat.py # 适配器插件：提供 register(registry) 或 ADAPTERS
+├── <平台>/provider-profiles.json     # 能力档案，按档案名并入基础档案
+├── <平台>/iv.config.local.json       # 配置覆盖，深合并到 iv.config.json
+└── <平台>/tests/test_*.py            # 本地专属套件，run_all.py 自动发现
+```
+
+约定与边界：
+
+- 本地目录**不存在是正常情况**（CI 与公开克隆都没有），此时请求未注册的 `provider_type`
+  会得到带指引的显式错误，而不是静默降级；
+- 插件加载失败、档案缺段一律**显式报错**（`BUILTIN_UNAVAILABLE` / `INVALID_INPUT`），不静默跳过；
+- 用 `IV_CONFIG` / `IV_PROFILES` **注入**配置或档案时**不合并**本地覆盖，保证测试可重复；
+- 能力声明必须实测回填（规则包 `references/provider-compat.md` §104），仓库里只留字段模板，
+  不猜任何真实平台的档位边长。
+
+批量跑测台 `scripts/run_matrix.py` 的档案名、主体描述、密钥引用全部由命令行/环境变量提供，
+代码里不写死任何平台（密钥只以 `secret://` / `env:` 引用形式出现）。
 
 ## 证据与阶段
 
@@ -144,8 +173,8 @@ python -m pip install -r requirements.txt        # 只需要 Pillow
 
 | 任务 | Runner | 内容 |
 |---|---|---|
-| `tests`（Python 3.12） | ubuntu-latest | 基线只读校验 → 基线自带契约 24/24 → Skill 01 全量 10 套件 → Grid/Sequence 端到端冒烟 |
-| `tests-py39`（Python 3.9） | ubuntu-24.04（钉住，26.04 已无 3.9） | 基线只读校验 → Skill 01 全量 10 套件 |
+| `tests`（Python 3.12） | ubuntu-latest | 基线只读校验 → 基线自带契约 24/24 → Skill 01 全量 11 套件 → Grid/Sequence 端到端冒烟 |
+| `tests-py39`（Python 3.9） | ubuntu-24.04（钉住，26.04 已无 3.9） | 基线只读校验 → Skill 01 全量 11 套件 |
 
 `main` 分支已开启保护：**两个任务必须全绿、分支必须与 main 同步、禁止强推与删除**，
 改动请走「开分支 → 提 PR → 等 CI → 合并」。Actions 与依赖版本由 Dependabot 每周提 PR，
