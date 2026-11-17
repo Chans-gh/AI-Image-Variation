@@ -1,22 +1,19 @@
 {
-  "profiles_version": "1.0",
-  "note": "Provider 能力档案：按 references/provider-compat.md §2 的结构声明，并按该文件第 104 行要求「各档位真实边长必须在真实服务上测量并回填」。这里只放声明与实测依据，绝不放任何密钥。若上游行为变化，必须重新实测后更新本文件，不得凭印象改数。",
-  "profiles": {
-    "qingshui_image2.5": {
-      "provider_type": "qingshui_image_compatible",
-      "model_id": "gpt-image-2.5-flare",
-      "base_url": "https://qingshui.hqqt.com",
-      "display_name": "青水 · GG 2.5（gpt-image-2.5-flare）",
+  "note": "本仓库不声明任何真实 Provider 的实测能力：能力声明必须由使用者在真实服务上测量后回填（见规则包 references/provider-compat.md §104）。\n把档案放到本地目录即可被加载（不进版本库）：local/provider-profiles.json 或 local/<平台>/provider-profiles.json，同名档案以本地为准。",
+  "profiles": {},
+  "_template": {
+    "_说明": "把下面这段复制到本地档案的 profiles 里，填成实测值；未实测的字段不要猜。",
+    "示例档案名": {
+      "provider_type": "openai_image_compatible",
+      "model_id": "<真实模型名>",
+      "base_url": "https://<你的服务>",
+      "display_name": "<展示名>",
       "capability": {
         "text_to_image": true,
         "reference_image_input": false,
         "image_edit": false,
         "supported_ratios": [
-          "1:1",
-          "3:4",
-          "4:3",
-          "16:9",
-          "9:16"
+          "1:1"
         ],
         "supported_resolution_tiers": [
           "1K"
@@ -25,139 +22,20 @@
           "1K": 1024
         },
         "custom_dimensions": false,
-        "supports_async_result": true,
+        "supports_async_result": false,
         "max_input_bytes": 10485760,
         "response_image_formats": [
           "png",
           "jpeg",
           "webp"
         ],
-        "distinguishable_errors": true,
-        "adapter_version": "qingshui-image/1.0",
+        "distinguishable_errors": false,
+        "adapter_version": "openai-image/1.0",
         "multiple_independent_requests": true
       },
-      "measured_at": "2026-11-17",
+      "measured_at": "<YYYY-MM-DD>",
       "evidence": {
-        "text_to_image": "1:1 纯文本成功，输出 1024×1024（1024²=1.05M 像素）",
-        "size_control": "报文无尺寸参数；多传 size=\"2048x2048\" 被后端忽略，仍输出 1024×1024",
-        "image_edit": "参考图 3 次全部失败：AIMS 图片编辑失败 [502] UPSTREAM_PROVIDER_ERROR（内联 data URL 与平台上传 URL 各测过，均失败）。若上游恢复，必须重新实测后把 reference_image_input/image_edit 改回 true",
-        "not_usable": "Grid 3×3/4×4 需要整板 ≥1536/2048，本模型恒定 1024 → 单格 341/256 px，低于 tile_edge_hard_min_px=512，属明确不可做"
-      }
-    },
-    "qingshui_gemini3.1": {
-      "provider_type": "qingshui_image_compatible",
-      "model_id": "gemini-3.1-flash-image-preview",
-      "base_url": "https://qingshui.hqqt.com",
-      "display_name": "青水 · Gemini 3.1 Flash Image",
-      "capability": {
-        "text_to_image": true,
-        "reference_image_input": true,
-        "image_edit": true,
-        "supported_ratios": [
-          "1:1",
-          "3:4",
-          "4:3",
-          "16:9",
-          "9:16"
-        ],
-        "supported_resolution_tiers": [
-          "1K"
-        ],
-        "tier_to_board_side_px": {
-          "1K": 1024
-        },
-        "custom_dimensions": false,
-        "supports_async_result": true,
-        "max_input_bytes": 10485760,
-        "response_image_formats": [
-          "png",
-          "jpeg",
-          "webp"
-        ],
-        "distinguishable_errors": true,
-        "adapter_version": "qingshui-image/1.0",
-        "multiple_independent_requests": true
-      },
-      "measured_at": "2026-11-17",
-      "evidence": {
-        "text_to_image": "1:1 纯文本成功，输出 1024×1024",
-        "image_edit": "参考图（平台上传 URL）成功，输出 1024×1024，耗时 20.2s，用后已取消分享",
-        "size_control": "报文无尺寸参数；多传 image_size=\"2K\" 被忽略，仍输出 1024×1024",
-        "ratio_frames": "3:4 输出 896×1200（长边 1200）；Grid 用 1:1 → 整板 1024，故 tier_to_board_side_px 记 1024",
-        "not_usable": "Grid 3×3/4×4 同 image2.5：恒定 1024 整板 → 单格不够，明确不可做"
-      }
-    },
-    "qingshui_doubao45": {
-      "provider_type": "qingshui_image_compatible",
-      "model_id": "Doubao-Seedream-4.5",
-      "base_url": "https://qingshui.hqqt.com",
-      "display_name": "青水 · Doubao Seedream 4.5（当前不可用）",
-      "capability": {
-        "text_to_image": false,
-        "reference_image_input": false,
-        "image_edit": false,
-        "supported_ratios": [],
-        "supported_resolution_tiers": [],
-        "tier_to_board_side_px": {},
-        "custom_dimensions": false,
-        "supports_async_result": true,
-        "max_input_bytes": 10485760,
-        "response_image_formats": [
-          "png",
-          "jpeg",
-          "webp"
-        ],
-        "distinguishable_errors": true,
-        "adapter_version": "qingshui-image/1.0",
-        "multiple_independent_requests": true
-      },
-      "measured_at": "2026-11-17",
-      "evidence": {
-        "text_to_image": "3 次全部失败（含纯文本与带参考图）：AIMS 400 InvalidParameter —— \"image size must be at least 3686400 pixels\"（3.6864M = 1920²）",
-        "root_cause": "qingshui 后端把 aspect_ratio 映射成 AIMS 的 size 参数，恒定约 1024²=1.05M 像素，永远达不到 Doubao 的 3.69M 下限 → 该模型在本平台不可用（属平台侧尺寸映射问题，建议反馈青水）",
-        "consequence": "本档案不声明任何档位，任务引用它会按底线清单直接报错，不会白花算力"
-      }
-    },
-    "qingshui_image2.5_sunburst": {
-      "provider_type": "qingshui_image_compatible",
-      "model_id": "gpt-image-2.5-sunburst",
-      "base_url": "https://qingshui.hqqt.com",
-      "display_name": "青水 · GG 2.5 Sunburst（gpt-image-2.5-sunburst）",
-      "capability": {
-        "text_to_image": true,
-        "reference_image_input": false,
-        "image_edit": false,
-        "supported_ratios": [
-          "1:1",
-          "3:4",
-          "4:3",
-          "16:9",
-          "9:16"
-        ],
-        "supported_resolution_tiers": [
-          "1K"
-        ],
-        "tier_to_board_side_px": {
-          "1K": 1024
-        },
-        "custom_dimensions": false,
-        "supports_async_result": true,
-        "max_input_bytes": 10485760,
-        "response_image_formats": [
-          "png",
-          "jpeg",
-          "webp"
-        ],
-        "distinguishable_errors": true,
-        "adapter_version": "qingshui-image/1.0",
-        "multiple_independent_requests": true
-      },
-      "measured_at": "2026-11-17",
-      "evidence": {
-        "text_to_image": "1:1 纯文本成功，输出 1024×1024，耗时 136.8s（同 prompt 下 flare 约 20~90s，sunburst 明显更慢）",
-        "image_edit": "带参考图（平台上传 URL）失败：AIMS 图片编辑失败 [503] UPSTREAM_CAPACITY_UNAVAILABLE，5.9s，task_id 2df38e9d-58e2-4999-b5f9-7803ddc6be63，仍扣 1 算力",
-        "family_finding": "2026-11-17 实测 gpt-image-2.5-flare（5 次：502×4 + 503×1）与 sunburst（1 次：503）的图片编辑通路均不可用，故两个档案都声明 reference_image_input=false；若上游恢复，必须重新实测后改回 true",
-        "not_usable": "Grid 3×3/4×4 同 flare：整板恒 1024 → 单格不够，明确不可做"
+        "text_to_image": "<实测结论与证据路径>"
       }
     }
   }

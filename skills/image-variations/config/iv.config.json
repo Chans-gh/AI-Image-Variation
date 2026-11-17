@@ -87,13 +87,5 @@
     "max_total_bytes": 2147483648,
     "max_entries": 5000,
     "max_compression_ratio": 200
-  },
-  "qingshui": {
-    "note": "青水异步图片接口的运行参数。轮询间隔/上限是运维参数，不是业务阈值。",
-    "poll_interval_sec": 3.0,
-    "max_wait_sec": 600,
-    "poll_consecutive_error_limit": 10,
-    "download_timeout_sec": 120,
-    "asset_cleanup": true
   }
 }

@@ -4,7 +4,7 @@
 为什么要有它（用户诉求）：
     1. 所有测试结果都要保存，供后续做 pages 页；
     2. 所有提示词都要能追溯（存原文 + sha256）；
-    3. 默认走青水 image2.5，参考图类任务走 gemini-3.1。
+    3. 走哪个 Provider/模型由 `--profile-text` / `--profile-image` 指定（档案在本地目录里）。
 
 产物布局（`--out` 目录下）：
     campaign.json              整批汇总（含算力/调用数与每个 cell 的状态）
@@ -23,15 +23,19 @@
     # 跑一个方向一个模式（1 轮）
     python scripts/run_matrix.py --out workspace/runs/r1 --directions light --modes grid
 
-    # 跑全部 12 方向
+    # 跑全部 12 方向（档案名由本地环境提供）
     python scripts/run_matrix.py --out workspace/runs/all --directions all --modes grid,sequence \\
-        --subject-file workspace/qingshui/subject.txt --max-calls 80
+        --profile-text <纯文本档案名> --profile-image <带参考图档案名> \\
+        --subject-file <主体描述文件> --max-calls 80
+
+说明：本仓库不带任何真实平台的能力档案（见 iv_skill/local_plugins.py）。
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
+import os
 import sys
 import time
 import traceback
@@ -45,14 +49,31 @@ if str(SCRIPTS) not in sys.path:
 
 import run_task as cli  # noqa: E402  （复用同一套引导与部署错误处理）
 
-DEFAULT_SUBJECT = ("一位穿黑色长袖深V连衣裙、黑色丝袜与黑色穆勒高跟鞋的年轻女性，"
-                   "坐在城市街边水泥台阶上侧头看向左侧，米色混凝土墙与棕色金属百叶格栅，"
-                   "黄色路缘线，低饱和灰褐色调，竖构图时尚街拍")
+# 档案名与主体描述一律由命令行/本地环境提供，不在代码里写死：
+# 档案属于"本地实测数据"，主体描述属于具体素材内容，两者都不该进版本库。
+PROFILE_ENV_TEXT = "IV_MATRIX_PROFILE_TEXT"
+PROFILE_ENV_IMAGE = "IV_MATRIX_PROFILE_IMAGE"
+DEFAULT_SECRET_REF = "env:IV_PROVIDER_API_KEY"
 
-# 模型策略（用户 2026-11-17 决定）：纯文本默认 image2.5；带参考图必须 gemini-3.1，
-# 因为实测 image2.5 的图片编辑通路 3/3 失败（AIMS [502]），档案里已声明不支持参考图。
-PROFILE_TEXT_ONLY = "qingshui_image2.5"
-PROFILE_IMAGE_ONLY = "qingshui_gemini3.1"
+
+def profile_provider_type(profile_name: str | None) -> str:
+    """从能力档案里取 provider_type（缺档案/缺字段都显式报错，不猜）。"""
+    if not profile_name:
+        raise ValueError("INVALID_INPUT: 未指定能力档案，无法确定 provider_type")
+    profiles = load_config_profiles().get("profiles") or {}
+    profile = profiles.get(profile_name)
+    if not profile:
+        raise ValueError(f"INVALID_INPUT: 能力档案 {profile_name!r} 不存在；"
+                         f"可用：{sorted(profiles)}")
+    provider_type = profile.get("provider_type")
+    if not provider_type:
+        raise ValueError(f"INVALID_INPUT: 能力档案 {profile_name!r} 缺少 provider_type")
+    return provider_type
+
+
+def load_config_profiles() -> dict:
+    from iv_skill.config import load_provider_profiles
+    return load_provider_profiles()
 
 
 def profile_model_id(profile_name: str | None) -> str | None:
@@ -114,9 +135,10 @@ def build_spec(*, cell_id: str, mode: str, direction: str, args, profile: str,
         "capture_prompt": True,
         "pack_zip": True,
         "provider": {
-            "type": "qingshui_image_compatible",
+            # provider_type 取自能力档案本身，不在代码里写死某个平台
+            "type": profile_provider_type(profile),
             "capability_profile": profile,
-            "api_key_secret_ref": "env:QINGSHUI_API_KEY",
+            "api_key_secret_ref": args.secret_ref,
         },
     }
     if args.resolution_tier:
@@ -337,8 +359,8 @@ def write_campaign(out_dir: Path, records: list[dict], skipped: list[dict], args
         "generated_at": iso_now(),
         "provider_profile": next((r.get("provider_profile") for r in records
                                   if r.get("provider_profile")),
-                                 PROFILE_IMAGE_ONLY if args.input_type == "image_only"
-                                 else PROFILE_TEXT_ONLY),
+                                 args.profile_image if args.input_type == "image_only"
+                                 else args.profile_text),
         "input_type": args.input_type,
         "aspect_ratio": args.aspect_ratio,
         "grid_size": args.grid_size,
@@ -405,6 +427,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--reference", default=None, help="image_only 时的参考图路径")
     parser.add_argument("--subject", default=None, help="主体锚点文本")
     parser.add_argument("--subject-file", default=None, help="主体锚点文本文件（优先于 --subject）")
+    parser.add_argument("--profile-text", default=None,
+                        help=f"纯文本任务的能力档案名（或环境变量 {PROFILE_ENV_TEXT}）")
+    parser.add_argument("--profile-image", default=None,
+                        help=f"带参考图任务的能力档案名（或环境变量 {PROFILE_ENV_IMAGE}）")
+    parser.add_argument("--secret-ref", default=DEFAULT_SECRET_REF,
+                        help="密钥引用（secret:// 或 env:），默认 " + DEFAULT_SECRET_REF)
     parser.add_argument("--max-calls", type=int, default=120, help="算力硬上限（张）")
     parser.add_argument("--dry-run", action="store_true", help="只打印计划，不调用模型")
     parser.add_argument("--reindex", action="store_true",
@@ -421,7 +449,12 @@ def main(argv: list[str] | None = None) -> int:
     subject = args.subject
     if args.subject_file:
         subject = Path(args.subject_file).read_text(encoding="utf-8").strip()
-    subject = subject or DEFAULT_SUBJECT
+    if not subject:
+        print(json.dumps({"ok": False, "error": {
+            "code": "INVALID_INPUT",
+            "message": "必须提供 --subject 或 --subject-file（主体描述属于素材内容，不在代码里写死）"}},
+            ensure_ascii=False, indent=2))
+        return 3
 
     if args.input_type == "image_only" and not args.reference:
         print(json.dumps({"ok": False, "error": {"code": "REFERENCE_REQUIRED",
@@ -443,7 +476,18 @@ def main(argv: list[str] | None = None) -> int:
         return 3
     modes = [item.strip() for item in args.modes.split(",") if item.strip()]
 
-    profile = PROFILE_IMAGE_ONLY if args.input_type == "image_only" else PROFILE_TEXT_ONLY
+    profile = args.profile_image if args.input_type == "image_only" else args.profile_text
+    if not profile:
+        env_name = PROFILE_ENV_IMAGE if args.input_type == "image_only" else PROFILE_ENV_TEXT
+        profile = os.environ.get(env_name, "")
+    if not profile:
+        print(json.dumps({"ok": False, "error": {
+            "code": "INVALID_INPUT",
+            "message": f"{args.input_type} 必须指定能力档案：--profile-"
+                       f"{'image' if args.input_type == 'image_only' else 'text'}"
+                       f"（或环境变量 {PROFILE_ENV_IMAGE if args.input_type == 'image_only' else PROFILE_ENV_TEXT}）"}},
+            ensure_ascii=False, indent=2))
+        return 3
     plan = [(mode, direction) for direction in directions for mode in modes]
 
     if args.dry_run:

@@ -15,16 +15,37 @@ from .capability import ModelCapability
 from .gemini_compat import GeminiImageAdapter
 from .mock import MockAdapter
 from .openai_compat import OpenAIImageAdapter
-from .qingshui_compat import QingshuiImageAdapter
+from ..local_plugins import providers_dirs, register_providers
 
 BUILTIN_FACTORY: Callable[[], ProviderAdapter] | None = None
 
-EXTERNAL_ADAPTERS = {
+# 公开仓库只带通用适配器；真实平台适配器作为**本地私有插件**注册（见 local_plugins）。
+EXTERNAL_ADAPTERS: dict[str, type] = {
     "openai_image_compatible": OpenAIImageAdapter,
     "gemini_image_compatible": GeminiImageAdapter,
-    "qingshui_image_compatible": QingshuiImageAdapter,
     "mock": MockAdapter,
 }
+
+_LOCAL_PROVIDERS_LOADED = False
+
+
+def ensure_local_providers() -> list[str]:
+    """注册本地私有 Provider 插件，返回新增的 provider_type。
+
+    没有 `local/` 目录是**正常情况**（公开仓库与 CI 都没有），不报错。
+    插件存在但加载失败会抛 `BUILTIN_UNAVAILABLE`——不静默跳过。
+    """
+    global _LOCAL_PROVIDERS_LOADED
+    if _LOCAL_PROVIDERS_LOADED:
+        return []
+    added = register_providers(EXTERNAL_ADAPTERS)
+    _LOCAL_PROVIDERS_LOADED = True
+    return added
+
+
+def available_provider_types() -> list[str]:
+    ensure_local_providers()
+    return sorted(EXTERNAL_ADAPTERS)
 
 
 def register_builtin(factory: Callable[[], ProviderAdapter] | None) -> None:
@@ -48,10 +69,14 @@ def build_adapter(*, provider_type: str, capability_declaration: dict | None = N
     config = config or load_config()
     if provider_type == "builtin":
         return builtin_adapter()
+    ensure_local_providers()
     adapter_cls = EXTERNAL_ADAPTERS.get(provider_type)
     if adapter_cls is None:
+        dirs = "、".join(str(p) for p in providers_dirs()) or "(无)"
         raise IVError("MODEL_CAPABILITY_UNSUPPORTED",
-                      f"未知 provider_type {provider_type!r}；支持 {sorted(EXTERNAL_ADAPTERS)}")
+                      f"未知 provider_type {provider_type!r}；当前可用 "
+                      f"{sorted(EXTERNAL_ADAPTERS)}。本仓库只带通用适配器；"
+                      f"接入真实平台请把适配器放到本地插件目录：{dirs}")
     capability = ModelCapability.from_declaration(capability_declaration)
     if provider_type == "mock":
         return MockAdapter(capability=capability, config=config, transport=transport,

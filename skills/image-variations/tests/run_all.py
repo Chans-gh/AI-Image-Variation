@@ -1,8 +1,12 @@
 """Skill 01 全量回归入口：契约 / 预检 / Provider / Grid / Sequence / 产物 / 部署。
 
+除上面这些**随仓库发布**的套件外，还会自动发现并运行本地私有套件
+（`local/tests/*.py` 与 `local/<平台>/tests/*.py`，两者都不进版本库）。
+
 用法：
     python skills/image-variations/tests/run_all.py
     python skills/image-variations/tests/run_all.py --skip-baseline
+    python skills/image-variations/tests/run_all.py --no-local   # 模拟 CI（不带本地扩展）
 """
 from __future__ import annotations
 
@@ -12,6 +16,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
+SCRIPTS = HERE.parent / "scripts"
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
 
 SUITES = [
     ("基线只读校验", [sys.executable, str(REPO / "shared" / "check_baseline.py")]),
@@ -26,14 +33,29 @@ SUITES = [
     ("Sequence 计划与逐帧", [sys.executable, str(HERE / "test_sequence.py")]),
     ("产物落盘与打包", [sys.executable, str(HERE / "test_artifact.py")]),
     ("部署与自检", [sys.executable, str(HERE / "test_deploy.py")]),
-    ("青水异步适配器", [sys.executable, str(HERE / "test_qingshui.py")]),
+    ("本地插件机制", [sys.executable, str(HERE / "test_local_plugins.py")]),
 ]
+
+
+def local_suites() -> list[tuple[str, list[str]]]:
+    """本地私有套件（不进版本库；没有就是空列表，属正常情况）。"""
+    from iv_skill.local_plugins import local_tests_dirs
+
+    found: list[tuple[str, list[str]]] = []
+    for directory in local_tests_dirs():
+        for script in sorted(directory.glob("test_*.py")):
+            found.append((f"本地：{script.stem}", [sys.executable, str(script)]))
+    return found
 
 
 def main(argv: list[str]) -> int:
     skip_baseline = "--skip-baseline" in argv
+    no_local = "--no-local" in argv
+    suites = list(SUITES)
+    if not no_local:
+        suites.extend(local_suites())
     failures: list[str] = []
-    for name, command in SUITES:
+    for name, command in suites:
         if skip_baseline and name.startswith("基线"):
             continue
         print(f"\n=== {name} ===")
@@ -49,7 +71,10 @@ def main(argv: list[str]) -> int:
     if failures:
         print(f"失败套件: {failures}")
         return 1
-    print(f"全部 {len(SUITES) - (1 if skip_baseline else 0)} 个套件通过")
+    ran = len([s for s in suites if not (skip_baseline and s[0].startswith("基线"))])
+    local_count = len(suites) - len(SUITES)
+    suffix = f"（含 {local_count} 个本地套件）" if local_count else ""
+    print(f"全部 {ran} 个套件通过{suffix}")
     return 0
 
 

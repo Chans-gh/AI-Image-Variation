@@ -11,6 +11,8 @@ import os
 from pathlib import Path
 from typing import Any
 
+from .local_plugins import merge_config, merge_profiles
+
 CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "iv.config.json"
 BINDINGS_PATH = Path(__file__).resolve().parents[2] / "config" / "error-registry-bindings.json"
 PROFILES_PATH = Path(__file__).resolve().parents[2] / "config" / "provider-profiles.json"
@@ -64,12 +66,9 @@ REQUIRED_KEYS: tuple[tuple[str, ...], ...] = (
     ("packaging", "max_total_bytes"),
     ("packaging", "max_entries"),
     ("packaging", "max_compression_ratio"),
-    ("qingshui", "poll_interval_sec"),
-    ("qingshui", "max_wait_sec"),
-    ("qingshui", "poll_consecutive_error_limit"),
-    ("qingshui", "download_timeout_sec"),
-    ("qingshui", "asset_cleanup"),
 )
+# 说明：Provider 专属的运行参数（轮询间隔等）由**本地配置覆盖**提供，不在这里要求——
+# 公开仓库不带任何真实平台参数，见 iv_skill/local_plugins.py。
 
 
 def _dig(data: dict, path: tuple[str, ...]) -> Any:
@@ -82,9 +81,16 @@ def _dig(data: dict, path: tuple[str, ...]) -> Any:
 
 
 def load_config(path: str | Path | None = None) -> dict:
-    """读取配置；环境变量 IV_CONFIG 可覆盖路径（测试注入用）。"""
+    """读取配置；环境变量 IV_CONFIG 可覆盖路径（测试注入用）。
+
+    只有在使用**默认路径**时才深合并本地覆盖（`local/**/iv.config.local.json`），
+    避免测试注入的配置被本机环境悄悄改掉。
+    """
+    injected = path is not None or bool(os.environ.get("IV_CONFIG"))
     target = Path(path) if path else Path(os.environ.get("IV_CONFIG", CONFIG_PATH))
     data = json.loads(target.read_text(encoding="utf-8"))
+    if not injected:
+        data = merge_config(data)
     missing = [".".join(key) for key in REQUIRED_KEYS if _missing(data, key)]
     if missing:
         raise ValueError(f"INVALID_INPUT: 配置缺少必填键 {missing}")
@@ -112,10 +118,13 @@ def load_provider_profiles(path: str | Path | None = None) -> dict:
     对应 provider-compat.md §104："各档位对应的真实边长必须在真实服务上测量并回填"。
     档案只放**声明与实测依据**，不含任何密钥。
     """
+    injected = path is not None or bool(os.environ.get("IV_PROFILES"))
     target = Path(path) if path else Path(os.environ.get("IV_PROFILES", PROFILES_PATH))
     data = json.loads(target.read_text(encoding="utf-8"))
     if not isinstance(data.get("profiles"), dict):
         raise ValueError("INVALID_INPUT: provider-profiles.json 缺少 profiles 段")
+    if not injected:
+        data = merge_profiles(data)
     return data
 
 
