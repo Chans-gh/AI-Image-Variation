@@ -183,10 +183,10 @@ class QingshuiImageAdapter(ProviderAdapter):
                 if state == "completed":
                     return poll
                 if state == "failed":
-                    mapped = self._task_failure_error(task.get("error_msg"))
+                    mapped, upstream_status = self._task_failure_error(task.get("error_msg"))
                     raise IVError(mapped.code,
                                   redact(mapped.message, [self._resolved_secret or ""]),
-                                  upstream_status=502, retryable=mapped.retryable,
+                                  upstream_status=upstream_status, retryable=mapped.retryable,
                                   attempts=None, task_id=task_id)
             else:
                 consecutive_errors += 1
@@ -204,31 +204,39 @@ class QingshuiImageAdapter(ProviderAdapter):
         raise IVError("PROVIDER_TIMEOUT", f"任务 {task_id} 等待超时（{self.max_wait_sec:.0f}s）",
                       retryable=True, task_id=task_id)
 
-    def _task_failure_error(self, message: str | None) -> MappedError:
-        """任务失败的归一：优先按上游故障码，其次复用 400 关键字表，最后视为可重试的单图失败。"""
+    def _task_failure_error(self, message: str | None) -> tuple[MappedError, int | None]:
+        """任务失败的归一：优先按上游故障码，其次复用 400 关键字表，最后视为可重试的单图失败。
+
+        返回 `(归一结果, 上游真实状态码)`——状态码必须来自响应原文，不能写死，
+        否则反馈给上游的 `upstream_status` 会与事实不符（实测把 503 记成过 502）。
+        """
         text = str(message or "")
         if any(hint in text.lower() for hint in _REFUSAL_HINTS):
             return MappedError("MODEL_REFUSAL", "上游拒绝生成（内容安全）：不得换 Provider 绕过",
-                               retryable=False)
+                               retryable=False), None
         match = _STATUS_IN_TEXT.search(text)
         status = int(match.group(1) or match.group(2)) if match else None
         if status is not None:
             mapped = classify(status, text)
             if mapped.code in ("PROVIDER_TIMEOUT", "RATE_LIMITED", "AUTH_FAILED"):
-                return mapped
+                return mapped, status
         if any(hint in text.lower() for hint in _SIZE_HINTS):
             # 上游能接受的尺寸与本平台映射出的尺寸不一致：这是能力/参数问题，重试没有意义。
             return MappedError("UNSUPPORTED_RESOLUTION",
                                f"上游不接受该尺寸（平台映射的尺寸不满足上游要求）：{text[:160]}",
-                               retryable=False)
-        if "UPSTREAM_PROVIDER_ERROR" in text:
-            return MappedError("PROVIDER_TIMEOUT", "上游模型服务异常：可有限重试", retryable=True)
+                               retryable=False), status
+        # 上游明确的"服务端故障"码：与状态码无关，一律按可重试的限时故障处理。
+        # UPSTREAM_CAPACITY_UNAVAILABLE 是实测到的第二个码（503 容量不可用）。
+        for upstream_code in ("UPSTREAM_PROVIDER_ERROR", "UPSTREAM_CAPACITY_UNAVAILABLE"):
+            if upstream_code in text:
+                return MappedError("PROVIDER_TIMEOUT", "上游模型服务异常：可有限重试",
+                                   retryable=True), (status or 502)
         mapped = classify(400, text)
         if mapped.code != "MODEL_CAPABILITY_UNSUPPORTED":
-            return mapped
+            return mapped, status
         return MappedError("IMAGE_VALIDATION_FAILED",
                            f"上游任务失败：{redact(text[:200], [self._resolved_secret or ''])}",
-                           retryable=True)
+                           retryable=True), status
 
     def _upload_reference(self, image) -> tuple[str | None, str]:
         """上传参考图换公开 URL（唯一可行通路：内联 data URL 已被实测否定）。"""
