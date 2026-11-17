@@ -27,11 +27,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
+      - name: 部署自检（--self-check，退出码 0 才算环境可用）
+        run: python skills/image-variations/scripts/run_task.py --self-check --pretty
       - name: 基线只读校验（238/238）
         run: python shared/check_baseline.py
       - name: 基线自带契约（24/24）
         run: python Image_Variations_Dual_Skill_SPEC_v1.1/tests/validate_example_contracts.py
-      - name: Skill 01 全量套件（9 套）
+      - name: Skill 01 全量套件（10 套）
         run: python skills/image-variations/tests/run_all.py
       - name: 端到端冒烟（Grid + Sequence，合成 Provider）
         run: |
@@ -43,6 +45,18 @@ jobs:
                  "direction":"light","input_type":"text_only","subject":"一只浅灰陶瓷杯",
                  "provider":{"type":"mock_synthetic"}}' > /tmp/ci_seq.json
           python skills/image-variations/scripts/run_task.py --input /tmp/ci_seq.json --workspace ./workspace
+          echo "--- 部署错误必须走 deployment_error 且退出码 4（模拟只搬技能目录）---"
+          rm -rf /tmp/ci_skill_only && mkdir -p /tmp/ci_skill_only
+          cp -R skills/image-variations /tmp/ci_skill_only/
+          set +e
+          IV_REPO_ROOT=/tmp/ci_skill_only python /tmp/ci_skill_only/image-variations/scripts/run_task.py \
+            --input /tmp/ci_grid.json --workspace /tmp/ci_skill_only_ws > /tmp/ci_deploy.json 2>/tmp/ci_deploy.err
+          code=$?
+          set -e
+          test "$code" = "4" || { echo "期望退出码 4，实际 $code"; cat /tmp/ci_deploy.json; exit 1; }
+          grep -q '"deployment_error"' /tmp/ci_deploy.json
+          ! grep -q '"error"' /tmp/ci_deploy.json
+          ! grep -qi 'Traceback' /tmp/ci_deploy.err /tmp/ci_deploy.json
           python - <<'PY'
           import json, pathlib
           for name in ("ci_grid", "ci_seq"):
@@ -66,7 +80,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
+      - name: 部署自检（--self-check，退出码 0 才算环境可用）
+        run: python skills/image-variations/scripts/run_task.py --self-check --pretty
       - name: 基线只读校验（238/238）
         run: python shared/check_baseline.py
-      - name: Skill 01 全量套件（9 套）
+      - name: Skill 01 全量套件（10 套）
         run: python skills/image-variations/tests/run_all.py
