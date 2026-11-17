@@ -326,6 +326,21 @@ class TestErrorNormalisation(unittest.TestCase):
         self.assertEqual(exc.code, "MODEL_REFUSAL")
         self.assertFalse(exc.detail.get("retryable"))
 
+    def test_capacity_unavailable_503_maps_to_retryable_with_true_status(self):
+        """实测第二个上游码：503 UPSTREAM_CAPACITY_UNAVAILABLE。状态码必须如实上报。"""
+        exc, _ = self._failed_with(
+            'image gen failed: AIMS 图片编辑失败: AIMS API 错误 [503]: '
+            '{"error":{"message":"模型服务暂时不可用，请稍后重试","type":"api_error",'
+            '"code":"UPSTREAM_CAPACITY_UNAVAILABLE"}}')
+        self.assertEqual(exc.code, "PROVIDER_TIMEOUT")
+        self.assertTrue(exc.detail.get("retryable"))
+        self.assertEqual(exc.detail.get("upstream_status"), 503,
+                         "不能把 503 记成 502（会误导上游排查）")
+
+    def test_upstream_status_absent_when_message_has_no_code(self):
+        exc, _ = self._failed_with("image gen failed: 未知原因")
+        self.assertIsNone(exc.detail.get("upstream_status"))
+
     def test_unknown_task_failure_is_retryable_single_image_error(self):
         exc, _ = self._failed_with("image gen failed: 未知原因")
         self.assertEqual(exc.code, "IMAGE_VALIDATION_FAILED")
