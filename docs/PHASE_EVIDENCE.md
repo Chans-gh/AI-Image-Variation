@@ -417,3 +417,130 @@ IV_REPO_ROOT=vendor → status=completed, seam=0.94641
 - 真实模型阈值校准（尤其近重复 0.9）
 - 两个兼容 profile 的字段名与真实响应比对
 - 宿主若要求非 `SKILL.md` 的清单名，需要一层极薄映射（`SKILL.md` 不含任何宿主细节）
+
+## 青水（qingshui）接入 + 接缝判据 A 方案 + 12 方向跑测台 — 2026-11-17
+
+### 1. 一个必须记录在案的规范矛盾（已获用户裁决）
+
+实测一张**质量良好**的 2×2 真实整板，接缝评分却是 `0.000`，被 `GRID_VALIDATION_FAILED` 阻断：
+
+| 指标 | 实测值 |
+| --- | --- |
+| `boundary_means` | `[48.6, 75.1]` |
+| `interior_means` | `[2.9 ~ 14.5]` |
+| `seam_ratio` | `8.57` |
+| `seam_score` | `1 − (8.57−1)/2 = 0.000` |
+| `border_lines` | `[]`（无框线，"无框"这项通过） |
+
+矛盾双方都在冻结包内：
+- `references/grid-prompt.md` §3 模板正文要求「**每一格都是完整构图**」「主体不得跨格」「第 k 格：<不同变化点>」→ 产物是**接触表**；
+- `specs/01-…-v1.2.md` 第 267–272 行 D-24 要求 `boundary_diff ≈ interior_diff`（`score ≥0.85` 需 `ratio ≤ 1.3`）→ 要求**跨格连续**。
+
+接触表在数学上不可能满足 D-24；且 `specs/01-…-v1.2.md` 第 597 行本就标注阈值「**待实测校准**」。这是第一个真实校准数据点。
+
+**用户裁决（2026-11-17）：A 方案** —— 连续性评分降为披露警告，伪影检测保持硬门禁。
+
+### 2. 实现：`seam.grade_mode`
+
+- `config/iv.config.json` 新增 `seam.grade_mode`，默认 `artifact_only`（可随时切回 `continuity_gate`）。
+- `artifact_only` 语义：结构判 `pass`（等大格子、无框线、无留白带仍由原有规则硬拦），但**强制**带一条 `GRID_SEAM_RISK` 披露警告，措辞含「本产物不是无缝整板，不得宣称无缝」；`validation.seam_score` / `seam_check_method` / `seam_ratio` 照写（满足 AC-28），并新增 `validation.seam_gate_mode` 记录当时用的是哪种判据。
+- `continuity_gate`：规范原文的阈值分级（`<0.60` 阻断），保留可用。
+- 测试：`test_grid.py` 两种模式都覆盖；硬接缝触发重试的用例显式切到 `continuity_gate`；新增 `test_contact_sheet_*` 三例（披露、框线仍拦、留白带仍拦）。
+
+### 3. 青水适配器（`provider/qingshui_compat.py`）
+
+提交→轮询→下载三段式异步；参考图**上传换 URL 并在 `finally` 回收**（实测内联 data URL 会被上游拒绝，实测上传 URL 可用）；错误归一全部走 `IVError` + 既有错误码表：
+
+| 上游现实 | 归一结果 |
+| --- | --- |
+| `AIMS … [502] UPSTREAM_PROVIDER_ERROR` | `PROVIDER_TIMEOUT`（可重试） |
+| `image size must be at least 3686400 pixels` | `UNSUPPORTED_RESOLUTION`（**不重试**） |
+| 内容安全/审核拒绝 | `MODEL_REFUSAL`（不重试） |
+| 任务 `failed` 且无匹配特征 | `IMAGE_VALIDATION_FAILED`（可重试） |
+| 轮询超时 / 连续错误达上限 / 下载失败 | `PROVIDER_TIMEOUT` |
+
+重试收口：执行器传 `max_extra_retries=0`，适配器单次尝试，避免算力翻倍；新增不变量用例「重试复用已上传 URL，不重复上传」。
+
+### 4. 能力档案（按 `provider-compat.md` §2 + 第 104 行「必须实测回填」）
+
+`config/provider-profiles.json` 三个档案，全部带 `measured_at` 与 `evidence`：
+
+| 档案 | 模型 | 能力声明要点 |
+| --- | --- | --- |
+| `qingshui_image2.5` | `gpt-image-2.5-flare` | 纯文本可用、1:1 恒 1024²、**参考图/编辑不可用**（3/3 次 502） |
+| `qingshui_gemini3.1` | `gemini-3.1-flash-image-preview` | 纯文本 + **参考图可用**、3:4 输出 896×1200 |
+| `qingshui_doubao45` | `Doubao-Seedream-4.5` | **不可用**（平台侧尺寸映射恒定 1.05M < AIMS 下限 3.69M），不声明任何档位，直接拦 |
+
+### 5. 12 方向跑测台（`scripts/run_matrix.py`）
+
+用户诉求：结果全存（供 pages）、提示词可追溯、默认 image2.5。实现：
+
+- 产物：`campaign.json`、`index.json`（pages 直接用）、`ledger.jsonl`（一行一 cell，含 `images[]`）、每 cell 的 `task.json` / `prompts/*.md` / `result.json` + 技能正式产物（`manifest.json`、`board.png`、`images/NN.png`、ZIP）。
+- 台账字段以 `manifest.json` 为唯一权威来源（`model_id`、尺寸、`seam_*`、`tile_edge_*`），并对老产物用能力档案回填 `model_id` 且标 `model_id_source`。
+- 提示词原文经 `capture_prompt=1` 回传给调用方后落 `prompts/*.md`，**不进 `manifest.json` / ZIP**。
+- `--dry-run` 预估算力、`--max-calls` 硬上限、默认跳过已成功 cell（保护算力）、`--reindex` 零成本重建台账。
+
+### 6. 真实端到端证据（第 1 轮，`light` 方向 / Grid 2×2 / image2.5）
+
+- `calls_used=2`、`attempts=2`、耗时 212.35s、`status=completed`；
+- 产物：`board.png` 1024×1024 → 4 张 `images/NN.png` 各 512×512；
+- `warnings`：`TILE_RESOLUTION_RISK`（512px 单格低于推荐 1024，已记降档）+ `GRID_SEAM_RISK`（接触表披露）；
+- `validation.seam_gate_mode=artifact_only`、`tile_edge_ok=false`、`grid_attempts=2`；
+- **真实 `manifest.json` 与 `delivery-package.json` 均通过冻结契约校验（0 问题）**；
+- ZIP 3.37 MB。
+
+### 7. 本轮未做 / 已知缺口
+
+- 3×3、4×4 Grid 未实测（1024 整板 → 单格 341/256，低于硬下限 512，按策略明确不可做）。
+- 失败尝试的**逐次**失败原因未落盘（manifest 只记 `grid_attempts`），排查时缺一层证据。
+- `openai_image_compat` / `gemini_image_compat` 字段名仍是未验证假设。
+- 成本口径：`cost_estimate` 走配置里的 USD 单价，而青水实际计费是「算力/张」，两者未打通。
+
+## image_only 真实跑通 + 参考图收回失败不再静默 — 2026-11-17
+
+### 1. `image_only`（带参考图）真实产物
+
+- 任务：`light` 方向、Grid 2×2、`input_type=image_only`、能力档案 `qingshui_gemini3.1`、参考图 = 用户原图（1663×2048，`_reference/reference.jpg` 已入档）。
+- 结果：`status=completed`、`calls_used=1`（**一次成板，未重试**）、`elapsed_sec=151.77`、`grid_attempts=1`。
+- 产物：`board.png` 1024×1024 → `images/01..04.png` 各 512×512；`model_id=gemini-3.1-flash-image-preview`（`model_id_source=manifest`）。
+- `warnings`：`TILE_RESOLUTION_RISK`×2（512px 单格，已记降档）+ `GRID_SEAM_RISK`（接触表披露）。
+- **真实 `manifest.json` 与 `delivery-package.json` 再次通过冻结契约校验（0 问题）**。
+- 观察（如实记录）：四格彼此一致、场景/姿态/服装接近原图，但**细节有漂移**——鞋从黑色穆勒高跟鞋变成露趾高跟凉鞋、裙摆变长且有拖尾。属于提示词/模型保真度问题，不是流水线缺陷。
+
+### 2. 修掉两个"image_only 从没真跑过"才会暴露的 bug
+
+| bug | 影响 | 修复 |
+| --- | --- | --- |
+| 能力档案名写成 `qingshui_gemini31`（实为 `qingshui_gemini3.1`） | image_only 直接 `MODEL_CAPABILITY_UNSUPPORTED` | 跑测台常量改正 |
+| 参考图键名写成 `reference_image`（契约要求 `reference_path` 且**相对 workspace**） | image_only 直接 `INVALID_INPUT` | 跑测台改为把参考图复制进存档目录并用相对路径 |
+
+### 3. 参考图收回失败不再静默（授权前提的兜底）
+
+原实现 `except Exception: pass` —— 删失败完全不可见，而"用完即删"是用户授权上传的前提，属**静默降级**。
+
+- 现在：DELETE 的**状态码也检查**（此前连状态码都没看），异常与非 2xx 都记成警告 `REFERENCE_CLEANUP_FAILED`（`severity=warning`），文案含 asset 前缀、"URL 可能仍公开可达，请到青水后台手动删除"。
+- 生成结果不丢：收回失败不抛错，图照常交付；警告经 `take_warnings()` 由 `run_task` 并入产物 `warnings[]`；生成失败时并入 `IVError.detail["warnings"]`。
+- 404 视为"本来就不存在"，不算失败。
+- **注册表缺口**：冻结的 `error-registry.json` 里 image_variations 的 23 个码**没有覆盖"资产收回失败"**，规范包只读、不得擅自新增，故该码仅作警告并在文案里标注"该码不在冻结错误码表内，待在规范中补充"。需要用户在下一版规范里补一个正式码。
+- 测试：新增 7 例（成功无警告、500 有警告但交付保留、请求异常、取走即清、404 不算失败、密钥不外泄、drain 兼容无此方法的适配器）。
+
+### 4. 待规范补充清单（用户裁决：先记录，需补正式码）
+
+新增 `docs/SPEC_BACKLOG.md`，集中记录 7 条必须由冻结包下一版处理的问题（每条含现象、实测证据、
+当前实现如何不静默降级、建议动作）：
+
+| 编号 | 问题 | 用户裁决 |
+| --- | --- | --- |
+| R-1 | 缺错误码：参考图临时分享收回失败 | 需补正式码，先记录 |
+| R-2 | D-24 接缝判据与接触表模板矛盾 | A 方案（连续降为警告，伪影仍硬拦） |
+| R-3 | 错误码总数 36 vs 37 | 待核 |
+| R-4 | 单格下限"长边 vs 短边"口径不一 | 待规范明确 |
+| R-5 | `tier_to_board_side_px` 标量无法表达按比例的真实边长 | 待规范扩展 |
+| R-6 | 失败尝试的逐次原因未进产物 | 待规范扩展 |
+| R-7 | 成本口径 USD vs 算力/张未打通 | 待规范扩展 |
+
+### 5. 用户裁定的不做项（2026-11-17）
+
+- 锚点文本**不加强**：实测带参考图时出现细节漂移（鞋型由穆勒高跟变露趾凉鞋、裙摆变长），
+  用户裁定"就这样"，因此不改 `anchor.py` 的锚点描述文案。
+- 12 方向批量测试**暂停**，不再投入算力；跑测台与能力档案已就绪，随时可 `--dry-run` 复核计划后再开跑。

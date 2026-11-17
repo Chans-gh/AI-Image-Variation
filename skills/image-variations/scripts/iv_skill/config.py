@@ -13,6 +13,7 @@ from typing import Any
 
 CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "iv.config.json"
 BINDINGS_PATH = Path(__file__).resolve().parents[2] / "config" / "error-registry-bindings.json"
+PROFILES_PATH = Path(__file__).resolve().parents[2] / "config" / "provider-profiles.json"
 
 REQUIRED_BINDING_CODES = (
     "AC-01", "AC-02", "AC-04", "AC-06", "AC-07", "AC-09", "AC-10", "AC-13", "AC-14",
@@ -32,6 +33,7 @@ REQUIRED_KEYS: tuple[tuple[str, ...], ...] = (
     ("seam", "epsilon"),
     ("seam", "pass_threshold"),
     ("seam", "risk_threshold"),
+    ("seam", "grade_mode"),
     ("seam", "border_line_detect", "min_run_px"),
     ("seam", "border_line_detect", "min_contrast"),
     ("seam", "border_line_detect", "blank_band_std_max"),
@@ -62,6 +64,11 @@ REQUIRED_KEYS: tuple[tuple[str, ...], ...] = (
     ("packaging", "max_total_bytes"),
     ("packaging", "max_entries"),
     ("packaging", "max_compression_ratio"),
+    ("qingshui", "poll_interval_sec"),
+    ("qingshui", "max_wait_sec"),
+    ("qingshui", "poll_consecutive_error_limit"),
+    ("qingshui", "download_timeout_sec"),
+    ("qingshui", "asset_cleanup"),
 )
 
 
@@ -97,6 +104,19 @@ def _missing(data: dict, path: tuple[str, ...]) -> bool:
             return True
         node = node[key]
     return False
+
+
+def load_provider_profiles(path: str | Path | None = None) -> dict:
+    """读取 Provider 能力档案（按实测回填的 ModelCapability 声明）。
+
+    对应 provider-compat.md §104："各档位对应的真实边长必须在真实服务上测量并回填"。
+    档案只放**声明与实测依据**，不含任何密钥。
+    """
+    target = Path(path) if path else Path(os.environ.get("IV_PROFILES", PROFILES_PATH))
+    data = json.loads(target.read_text(encoding="utf-8"))
+    if not isinstance(data.get("profiles"), dict):
+        raise ValueError("INVALID_INPUT: provider-profiles.json 缺少 profiles 段")
+    return data
 
 
 def load_bindings(path: str | Path | None = None) -> dict:

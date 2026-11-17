@@ -26,6 +26,7 @@ SUITES = [
     ("Sequence 计划与逐帧", [sys.executable, str(HERE / "test_sequence.py")]),
     ("产物落盘与打包", [sys.executable, str(HERE / "test_artifact.py")]),
     ("部署与自检", [sys.executable, str(HERE / "test_deploy.py")]),
+    ("青水异步适配器", [sys.executable, str(HERE / "test_qingshui.py")]),
 ]
 
 

@@ -39,6 +39,15 @@ from iv_skill.seam import classify_seam, measure_seam  # noqa: E402
 from shared.errors import IVError  # noqa: E402
 
 CONFIG = load_config()
+
+
+def continuity_config() -> dict:
+    """规范原文的阈值分级模式（grade_mode=continuity_gate），用于验证 D-24 的分级本身。"""
+    import copy
+
+    config = copy.deepcopy(CONFIG)
+    config["seam"]["grade_mode"] = "continuity_gate"
+    return config
 REGISTRY = DirectionRegistry()
 
 
@@ -126,10 +135,11 @@ class TestSeamScore(unittest.TestCase):
 
     def test_faint_seam_lands_in_risk_band(self):
         """D-24 的 0.60–0.85 风险带必须真的可达，否则分级形同虚设。"""
+        config = continuity_config()
         for grid_size in (2, 3, 4):
             with self.subTest(grid_size=grid_size):
-                report = measure_seam(faint_seam_board(grid_size, 384, delta=3), grid_size, CONFIG)
-                verdict, code = classify_seam(report, CONFIG)
+                report = measure_seam(faint_seam_board(grid_size, 384, delta=3), grid_size, config)
+                verdict, code = classify_seam(report, config)
                 self.assertEqual(verdict, "risk", f"score={report.score:.4f}")
                 self.assertEqual(code, "GRID_SEAM_RISK")
 
@@ -146,13 +156,33 @@ class TestSeamScore(unittest.TestCase):
         self.assertLess(abs(payload["seam_ratio"] - report.seam_ratio), 1e-6)
         self.assertGreater(report.seam_ratio, 0)
 
-    def test_hard_seam_fails(self):
+    def test_hard_seam_fails_under_continuity_gate(self):
+        config = continuity_config()
         for grid_size in (2, 3):
             with self.subTest(grid_size=grid_size):
-                report = measure_seam(hard_seam_board(grid_size, 384), grid_size, CONFIG)
-                verdict, code = classify_seam(report, CONFIG)
+                report = measure_seam(hard_seam_board(grid_size, 384), grid_size, config)
+                verdict, code = classify_seam(report, config)
                 self.assertEqual(verdict, "fail", f"score={report.score:.4f}")
                 self.assertEqual(code, "GRID_VALIDATION_FAILED")
+
+    def test_contact_sheet_mode_demotes_continuity_to_warning(self):
+        """客户确认的 A 方案：接触表语义下连续性只作警告，框线/留白带仍是硬门禁。"""
+        report = measure_seam(hard_seam_board(2, 384), 2, CONFIG)
+        verdict, code = classify_seam(report, CONFIG)
+        self.assertEqual(verdict, "pass", "结构通过：等大格子、无框线、无留白带")
+        self.assertEqual(code, "GRID_SEAM_RISK", "但必须披露：不是无缝整板")
+        self.assertEqual(CONFIG["seam"]["grade_mode"], "artifact_only")
+
+    def test_contact_sheet_mode_still_fails_on_border_line(self):
+        """降级只针对连续性评分，不许放过真实伪影。"""
+        report = measure_seam(border_line_board(3, 384), 3, CONFIG)
+        self.assertTrue(report.has_border_line)
+        self.assertEqual(classify_seam(report, CONFIG), ("fail", "GRID_VALIDATION_FAILED"))
+
+    def test_contact_sheet_mode_still_fails_on_blank_band(self):
+        report = measure_seam(flat_board(3, 256), 3, CONFIG)
+        self.assertTrue(report.has_border_line)
+        self.assertEqual(classify_seam(report, CONFIG), ("fail", "GRID_VALIDATION_FAILED"))
 
     def test_solid_color_boards_flagged_as_blank_band(self):
         """纯色板没有任何内容，边界即纯色带 → 判有可见缝，不冒充无缝。"""
@@ -182,7 +212,8 @@ class TestSeamScore(unittest.TestCase):
     def test_thresholds_come_from_config(self):
         report = measure_seam(smooth_board(2, 128), 2, CONFIG)
         strict = dict(CONFIG)
-        strict["seam"] = {**CONFIG["seam"], "pass_threshold": 1.01, "risk_threshold": 0.0}
+        strict["seam"] = {**CONFIG["seam"], "pass_threshold": 1.01, "risk_threshold": 0.0,
+                          "grade_mode": "continuity_gate"}
         verdict, code = classify_seam(report, strict)
         self.assertEqual(verdict, "risk")
         self.assertEqual(code, "GRID_SEAM_RISK")
@@ -341,13 +372,27 @@ class TestExecuteGrid(unittest.TestCase):
         self.assertEqual(execution.prompt_meta["template_version"], "grid-prompt-v1")
 
     def test_risk_board_still_delivers_with_warning(self):
-        adapter, execution = self.run_grid([png(faint_seam_board(2, 768, delta=3))])
+        adapter, execution = self.run_grid([png(faint_seam_board(2, 768, delta=3))],
+                                           config=continuity_config())
         self.assertEqual(execution.result.verdict, "risk")
         codes = {w["code"] for w in execution.warnings}
         self.assertIn("GRID_SEAM_RISK", codes)
         self.assertEqual(len(adapter.trace), 1)
         self.assertGreaterEqual(execution.result.seam.score, CONFIG["seam"]["risk_threshold"])
         self.assertLess(execution.result.seam.score, CONFIG["seam"]["pass_threshold"])
+
+    def test_contact_sheet_passes_with_disclosure_warning(self):
+        """A 方案：接触表结构通过、不重试，但必须带 GRID_SEAM_RISK 披露（不得宣称无缝）。"""
+        adapter, execution = self.run_grid([png(hard_seam_board(2, 512))])
+        self.assertEqual(execution.result.verdict, "pass")
+        self.assertEqual(len(adapter.trace), 1, "结构通过就不该重试")
+        codes = {w["code"] for w in execution.warnings}
+        self.assertIn("GRID_SEAM_RISK", codes)
+        warning = next(w for w in execution.warnings if w["code"] == "GRID_SEAM_RISK")
+        self.assertEqual(warning["severity"], "warning")
+        self.assertIn("不得宣称无缝", warning["message"])
+        self.assertEqual(execution.result.postprocess.validation["seam_gate_mode"],
+                         "artifact_only")
 
     def test_tier_warning_propagates(self):
         _, execution = self.run_grid([png(smooth_board(2, 512))], requested_tier="1K")
@@ -356,8 +401,10 @@ class TestExecuteGrid(unittest.TestCase):
         self.assertEqual(execution.plan["tier_policy"], "user_override")
 
     def test_retry_on_bad_board_then_success(self):
+        """连续性门禁下，硬接缝整板要重试到好板。"""
         adapter, execution = self.run_grid([png(hard_seam_board(2, 512)),
-                                            png(smooth_board(2, 512))])
+                                            png(smooth_board(2, 512))],
+                                           config=continuity_config())
         self.assertEqual(len(adapter.trace), 2)
         self.assertEqual(execution.budget["calls_used"], 2)
         self.assertEqual(execution.result.verdict, "pass")
@@ -369,7 +416,7 @@ class TestExecuteGrid(unittest.TestCase):
         with self.assertRaises(IVError) as ctx:
             execute_grid(adapter=adapter, direction_key="light", grid_size=2, aspect_ratio="1:1",
                          input_type="text_only", subject_anchor="x", registry=REGISTRY,
-                         config=CONFIG, sleep=lambda _: None)
+                         config=continuity_config(), sleep=lambda _: None)
         self.assertEqual(ctx.exception.code, "GRID_VALIDATION_FAILED")
         self.assertEqual(len(adapter.trace), CONFIG["retry"]["grid_max_attempts"])
         self.assertIn("grid_attempts", ctx.exception.detail)
@@ -434,7 +481,7 @@ class TestExecuteGrid(unittest.TestCase):
         with self.assertRaises(IVError) as ctx:
             execute_grid(adapter=adapter, direction_key="light", grid_size=2, aspect_ratio="1:1",
                          input_type="text_only", subject_anchor="x", registry=REGISTRY,
-                         config=CONFIG, budget=budget, sleep=lambda _: None)
+                         config=continuity_config(), budget=budget, sleep=lambda _: None)
         self.assertEqual(ctx.exception.code, "BUDGET_EXCEEDED")
         self.assertEqual(len(adapter.trace), 1)
 

@@ -78,6 +78,15 @@ def build_task_adapter(spec: dict, *, config: dict, grid_size: int):
         # O-02：宿主未注入内置能力时必须显式报码，不允许自动改走 external
         return build_adapter(provider_type="builtin")
     declaration = provider.get("capability")
+    base_url = provider.get("base_url", "")
+    model_id = provider.get("model_id", "")
+    profile_name = provider.get("capability_profile")
+    if declaration is None and profile_name:
+        # 能力档案：把实测回填的 ModelCapability 集中放一处，避免每个任务重复手写且写错
+        entry = _provider_profile(profile_name, provider_type)
+        declaration = entry["capability"]
+        base_url = base_url or entry.get("base_url", "")
+        model_id = model_id or entry.get("model_id", "")
     if not declaration:
         raise IVError("MODEL_CAPABILITY_UNSUPPORTED",
                       f"Provider {provider_type} 必须提供 capability 能力声明（底线清单）")
@@ -86,11 +95,29 @@ def build_task_adapter(spec: dict, *, config: dict, grid_size: int):
     return build_adapter(
         provider_type=provider_type,
         capability_declaration=declaration,
-        base_url=provider.get("base_url", ""),
+        base_url=base_url,
         secret_ref=provider.get("api_key_secret_ref") or provider.get("secret_ref"),
-        model_id=provider.get("model_id", ""),
+        model_id=model_id,
         request_timeout_sec=provider.get("request_timeout_sec"),
         config=config)
+
+
+def _provider_profile(name: str, provider_type: str) -> dict:
+    """按名字取能力档案；provider_type 必须匹配，避免张冠李戴。"""
+    from .config import load_provider_profiles
+
+    profiles = (load_provider_profiles().get("profiles") or {})
+    entry = profiles.get(name)
+    if entry is None:
+        raise IVError("MODEL_CAPABILITY_UNSUPPORTED",
+                      f"未知能力档案 {name!r}；可用 {sorted(profiles)}")
+    declared = entry.get("provider_type")
+    if declared and declared != provider_type:
+        raise IVError("INVALID_INPUT",
+                      f"能力档案 {name!r} 属于 {declared}，与 provider.type={provider_type} 不符")
+    if not isinstance(entry.get("capability"), dict):
+        raise IVError("MODEL_CAPABILITY_UNSUPPORTED", f"能力档案 {name!r} 缺少 capability 声明")
+    return entry
 
 
 def build_task_anchor(spec: dict, workspace: Path, reference: ReferenceImage | None) -> Anchor:
@@ -150,14 +177,36 @@ def run_task(spec: dict, *, workspace: str | Path | None = None) -> dict:
         raise IVError("INVALID_INPUT", "plan_only 仅用于预检：请调用 preflight 接口而非 run_task")
 
     pack_zip = bool(spec.get("pack_zip"))
+    try:
+        if resolved["mode"] == "grid":
+            execution = execute_grid(adapter=adapter, direction_key=resolved["direction"],
+                                     grid_size=resolved["grid_size"],
+                                     aspect_ratio=resolved["aspect_ratio"],
+                                     input_type=resolved["input_type"], subject_anchor=anchor.description,
+                                     reference_image=reference,
+                                     requested_tier=resolved["requested_tier"], registry=registry,
+                                     config=config)
+        else:
+            execution = execute_sequence(adapter=adapter, direction_key=resolved["direction"],
+                                         branch=resolved["branch"] or "variants",
+                                         frame_count=int(resolved["image_count"] or 0),
+                                         aspect_ratio=resolved["aspect_ratio"],
+                                         input_type=resolved["input_type"], anchor=anchor,
+                                         reference_image=reference,
+                                         requested_tier=resolved["requested_tier"],
+                                         registry=registry, config=config)
+    except IVError as exc:
+        # 生成失败也要把适配器侧的操作性警告带出去（例如参考图 URL 没收回成功）
+        cleanup_warnings = _drain_adapter_warnings(adapter)
+        if cleanup_warnings:
+            exc.detail = {**(exc.detail or {}), "warnings": cleanup_warnings}
+        raise
+
+    warnings = list(execution.warnings) + _drain_adapter_warnings(adapter)
+    if warnings:
+        execution.warnings = warnings
+
     if resolved["mode"] == "grid":
-        execution = execute_grid(adapter=adapter, direction_key=resolved["direction"],
-                                 grid_size=resolved["grid_size"],
-                                 aspect_ratio=resolved["aspect_ratio"],
-                                 input_type=resolved["input_type"], subject_anchor=anchor.description,
-                                 reference_image=reference,
-                                 requested_tier=resolved["requested_tier"], registry=registry,
-                                 config=config)
         artifact = write_grid_artifact(workspace=workspace_path, task_id=spec["task_id"],
                                        execution=execution, anchor=anchor.to_dict(),
                                        registry=registry, input_type=resolved["input_type"],
@@ -166,14 +215,6 @@ def run_task(spec: dict, *, workspace: str | Path | None = None) -> dict:
                                        config=config)
         summary = _execution_summary(execution, "grid")
     else:
-        execution = execute_sequence(adapter=adapter, direction_key=resolved["direction"],
-                                     branch=resolved["branch"] or "variants",
-                                     frame_count=int(resolved["image_count"] or 0),
-                                     aspect_ratio=resolved["aspect_ratio"],
-                                     input_type=resolved["input_type"], anchor=anchor,
-                                     reference_image=reference,
-                                     requested_tier=resolved["requested_tier"],
-                                     registry=registry, config=config)
         artifact = write_sequence_artifact(workspace=workspace_path, task_id=spec["task_id"],
                                            execution=execution, anchor=anchor.to_dict(),
                                            registry=registry, input_type=resolved["input_type"],
@@ -181,7 +222,26 @@ def run_task(spec: dict, *, workspace: str | Path | None = None) -> dict:
                                            parent_revision=resolved["parent"], pack_zip=pack_zip,
                                            config=config)
         summary = _execution_summary(execution, "sequence")
-    return {"ok": True, **summary, **artifact.to_dict()}
+    payload = {"ok": True, **summary, **artifact.to_dict()}
+    if spec.get("capture_prompt"):
+        # 提示词原文只回传给调用方（跑测台用于追溯），**不进 manifest.json / ZIP**。
+        payload["prompts"] = _capture_prompts(execution, resolved["mode"])
+    return payload
+
+
+def _drain_adapter_warnings(adapter) -> list[dict]:
+    """适配器可能攒了操作性警告（如参考图 URL 收回失败），取走并清空。"""
+    take = getattr(adapter, "take_warnings", None)
+    if not callable(take):
+        return []
+    return list(take() or [])
+
+
+def _capture_prompts(execution, mode: str) -> dict:
+    """把真正发出去的提示词原样取出：Grid 是整板提示词，Sequence 是每一帧的提示词。"""
+    if mode == "grid":
+        return {"board": execution.prompt_text}
+    return {f"frame_{frame.index:02d}": frame.prompt for frame in execution.frames}
 
 
 def _execution_summary(execution, mode: str) -> dict:
