@@ -3,6 +3,7 @@
 import argparse
 import shutil
 import tempfile
+import tomllib
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -10,8 +11,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output", default="dist/image-variations-0.1.0.zip")
+    parser.add_argument("--output", default=f"dist/image-variations-{project['version']}.zip")
     args = parser.parse_args()
     target = Path(args.output).resolve()
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -27,9 +29,7 @@ def main():
         )
         shutil.copytree(ROOT / "contracts", folder / "references/contracts")
         shutil.copyfile(ROOT / "LICENSE", folder / "LICENSE")
-        (folder / "scripts/requirements.txt").write_text(
-            "Pillow>=11,<13\njsonschema>=4.23,<5\nfilelock>=3.16,<4\n"
-        )
+        (folder / "scripts/requirements.txt").write_text("\n".join(project["dependencies"]) + "\n")
         with ZipFile(target, "w", ZIP_DEFLATED) as z:
             for path in sorted(folder.rglob("*")):
                 if path.is_file():

@@ -1,6 +1,6 @@
 # Skill 01 验证记录
 
-开发预览 `0.1.0` · SPEC 01 `v1.3` · 提示词库 `1.4.3` · 2026-11-19
+开发预览 `0.1.1` · SPEC 01 `v1.3` · 提示词库 `1.4.3` · 2026-11-19
 
 ## 软件回归
 
@@ -8,6 +8,7 @@
 - 合成 Grid 覆盖 2×2、3×3、4×4。合成 Sequence 覆盖 `variants`、`progression`、`narrative`，含原图或首帧引用及失败帧恢复。
 - 独立安装 ZIP 已在仓库外运行 3×3 Grid 和 4 帧叙事 Sequence 的 CLI 演示。演示资产带 `synthetic_fixture` 标记。
 - CI 的 `tests` 检查执行回归和安装包冒烟。保护规则沿用的 `tests-py39` 检查验证安装程序会按元数据拒绝 Python 3.9。运行版本要求为 Python 3.11 或以上。
+- `0.1.1` 提升 Pillow 和 filelock 的最低修复版本，源码与安装 ZIP 使用同一份依赖声明。 [Pillow](https://pypi.org/project/pillow/13.0.0/) · [filelock](https://pypi.org/project/filelock/4.2.1/)
 
 ## 实际图像回归
 
