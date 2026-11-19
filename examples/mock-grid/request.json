@@ -1,0 +1,14 @@
+{
+  "input": {
+    "user_prompt": "合成几何图形，离线测试"
+  },
+  "output": {
+    "mode": "grid",
+    "grid_size": 3,
+    "package_zip": true
+  },
+  "variation": {
+    "direction": "state"
+  },
+  "images_only": true
+}

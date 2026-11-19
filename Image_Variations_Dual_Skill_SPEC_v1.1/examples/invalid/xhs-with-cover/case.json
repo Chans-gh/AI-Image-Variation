@@ -1,9 +1,0 @@
-{
-  "check": "content_artifact",
-  "target": "manifest.json",
-  "schema": "content-artifact.schema.json",
-  "expect": {
-    "schema_fail": true,
-    "codes": []
-  }
-}

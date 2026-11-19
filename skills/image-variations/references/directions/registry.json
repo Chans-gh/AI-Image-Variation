@@ -1,0 +1,115 @@
+{
+  "version": "1.4.3",
+  "directions": [
+    {
+      "key": "state",
+      "label": "状态拓展",
+      "version": "1.3.0",
+      "rule_file": "state.txt",
+      "branch_default": "variants"
+    },
+    {
+      "key": "view",
+      "label": "视角拓展",
+      "version": "1.4.1",
+      "rule_file": "view.txt",
+      "plan_evidence_fields": [
+        "camera_position",
+        "visible_projection",
+        "world_projection"
+      ],
+      "branch_default": "variants"
+    },
+    {
+      "key": "scene",
+      "label": "场景拓展",
+      "version": "1.4.2",
+      "rule_file": "scene.txt",
+      "plan_evidence_fields": [
+        "place",
+        "route_connection",
+        "visible_landmark"
+      ],
+      "branch_default": "variants"
+    },
+    {
+      "key": "detail",
+      "label": "细节拓展",
+      "version": "1.3.0",
+      "rule_file": "detail.txt",
+      "branch_default": "progression"
+    },
+    {
+      "key": "light",
+      "label": "光影拓展",
+      "version": "1.3.0",
+      "rule_file": "light.txt",
+      "branch_default": "variants"
+    },
+    {
+      "key": "composition",
+      "label": "构图拓展",
+      "version": "1.3.0",
+      "rule_file": "composition.txt",
+      "branch_default": "variants"
+    },
+    {
+      "key": "style",
+      "label": "风格拓展",
+      "version": "1.3.0",
+      "rule_file": "style.txt",
+      "branch_default": "variants"
+    },
+    {
+      "key": "styling",
+      "label": "造型拓展",
+      "version": "1.3.0",
+      "rule_file": "styling.txt",
+      "branch_default": "variants"
+    },
+    {
+      "key": "weather",
+      "label": "时间天气拓展",
+      "version": "1.4.0",
+      "rule_file": "weather.txt",
+      "plan_evidence_fields": [
+        "condition",
+        "environment_effect",
+        "subject_response"
+      ],
+      "branch_default": "progression"
+    },
+    {
+      "key": "lens",
+      "label": "镜头语言拓展",
+      "version": "1.4.3",
+      "rule_file": "lens.txt",
+      "plan_evidence_fields": [
+        "framing",
+        "capture_method",
+        "visible_effect"
+      ],
+      "branch_default": "variants"
+    },
+    {
+      "key": "usage",
+      "label": "用途拓展",
+      "version": "1.4.0",
+      "rule_file": "usage.txt",
+      "plan_evidence_fields": [
+        "deliverable",
+        "communication_goal",
+        "placement_or_crop",
+        "acceptance_test"
+      ],
+      "branch_default": "variants"
+    },
+    {
+      "key": "narrative",
+      "label": "情节拓展",
+      "version": "1.3.0",
+      "rule_file": "narrative.txt",
+      "branch_default": "narrative"
+    }
+  ]
+}

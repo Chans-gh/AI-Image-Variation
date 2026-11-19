@@ -1,0 +1,131 @@
+{
+  "spec_version": "1.3",
+  "prompt_template_version": "1.4.3",
+  "files": {
+    "prompts/P1-01.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.2 P1-01｜输入意图与参数解析（文本模型 System + User 模板）",
+      "sha256": "bbf7620942346918dbb130344e4d9d6e7866fd687cc9ae7dc39dbb0114874fed"
+    },
+    "prompts/P1-02.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.3 P1-02｜文本归一化（原包归一化规则的 Skill 版）",
+      "sha256": "a76dabf08a04994ddc917618a2041087214d4b331f3523f26e99b046134d8da3"
+    },
+    "prompts/P1-03.txt": {
+      "source": "specs/01-Image-Variations-Prompt-Revision-v1.4.md",
+      "source_heading": "### prompts/P1-03.txt",
+      "sha256": "ed4c4755898adbcc353ed3769c354df43ef17a560344a2bb5bba7394a815b273"
+    },
+    "prompts/P1-04.txt": {
+      "source": "specs/01-Image-Variations-Prompt-Revision-v1.4.md",
+      "source_heading": "### prompts/P1-04.txt",
+      "sha256": "2137c73abd6cc8dbb8f7c86759876fed02c2ffb47e94d0ccb37371e992374ee5"
+    },
+    "prompts/P1-05.txt": {
+      "source": "specs/01-Image-Variations-Prompt-Revision-v1.4.md",
+      "source_heading": "### prompts/P1-05.txt",
+      "sha256": "46fa5b0f1a40150543498d43695b4c27cffd58114a6b5f0771bb20dc5ed4e2a8"
+    },
+    "prompts/P1-06.txt": {
+      "source": "specs/01-Image-Variations-Prompt-Revision-v1.4.md",
+      "source_heading": "### prompts/P1-06.txt",
+      "sha256": "de19dc6a667aacc90f5c64a8dde62f7d9df4a2aa5bf29df236bae0d5b3364ede"
+    },
+    "prompts/branch-variants.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.8 Sequence 分支全文（按 `{{BRANCH}}` 独占注入 P1-06）",
+      "sha256": "8c8d6587bd7ad834ee3b2b65211c23391e87f8ccab48c21d55a69833850bfe3a"
+    },
+    "prompts/branch-progression.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.8 Sequence 分支全文（按 `{{BRANCH}}` 独占注入 P1-06）",
+      "sha256": "17d0952caaa5f07be62021934760a0f76dfdd1efd0a0a0cdeb1dba45547babbb"
+    },
+    "prompts/branch-narrative.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.8 Sequence 分支全文（按 `{{BRANCH}}` 独占注入 P1-06）",
+      "sha256": "c6e68ae20b1b80e4e8b4ff8cb466ee24b2ddd907807875b4257df2f5f1bdc188"
+    },
+    "prompts/P1-07.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.9 P1-07｜Sequence 第1张图片生成 Prompt（text-only 初始化 / 有图普通首帧）",
+      "sha256": "f5064062ccb5b381b8fff6e107e6fdc3374447302bab14df0bec6cb2f0e6a7d8"
+    },
+    "prompts/P1-08.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.10 P1-08｜Sequence 第2..N张独立图片 Prompt（每帧不同）",
+      "sha256": "d8c4e383f81c3fcbf4242c68fccdc41da372c6ee1129e22bf7e8855ca85f3d58"
+    },
+    "prompts/P1-09.txt": {
+      "source": "specs/01-Image-Variations-Prompt-Revision-v1.4.md",
+      "source_heading": "### prompts/P1-09.txt",
+      "sha256": "88a969b05b0d0b69a61c783fa4508895d16eee2e3faa5418950c34d267638c74"
+    },
+    "prompts/P1-10.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.12 P1-10｜局部 Prompt 修复器（只修复失败项）",
+      "sha256": "2c13ccea1a5261ab594ad8961eb6d99f5675e6b4f21cf940ba1247c6ec59cb72"
+    },
+    "directions/state.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.13.01 `state`｜状态拓展",
+      "sha256": "4c6eb3121d23fe9437d458de76aebeb5ab115df76ebab09ef4e7d6dff373a83a"
+    },
+    "directions/view.txt": {
+      "source": "specs/01-Image-Variations-Prompt-Revision-v1.4.md",
+      "source_heading": "### directions/view.txt",
+      "sha256": "e5d81b6773e670eca945736c80e2f1ba1c8489250ffbc5f94b7c44face1c310c"
+    },
+    "directions/scene.txt": {
+      "source": "specs/01-Image-Variations-Prompt-Revision-v1.4.md",
+      "source_heading": "### directions/scene.txt",
+      "sha256": "b2286135b4630afd46a302ba72149727cc9f53256c6b346a90a496cbe77b9ae0"
+    },
+    "directions/detail.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.13.04 `detail`｜细节拓展",
+      "sha256": "e794a2ffa1d057c27b9e028754caef12036091623a7bdbc5aca63f6267284c5a"
+    },
+    "directions/light.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.13.05 `light`｜光影拓展",
+      "sha256": "03d220eacebac45c288085cbac76526f0f20fcef25ee9384129fd1d6c99b53dd"
+    },
+    "directions/composition.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.13.06 `composition`｜构图拓展",
+      "sha256": "a50ecc87ff35af30414aa4eeee6d18b68de9e2e0e8a936d68de681b3d1277f32"
+    },
+    "directions/style.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.13.07 `style`｜风格拓展",
+      "sha256": "537966b5996599ba204c4951c1c3be9f7706be0c5b63c594df35d1f31bfac694"
+    },
+    "directions/styling.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.13.08 `styling`｜造型拓展",
+      "sha256": "24f62b30e84e01c1345b79ba2db6de915eb7d2814a979ae3f98eebccd99f7e2c"
+    },
+    "directions/weather.txt": {
+      "source": "specs/01-Image-Variations-Prompt-Revision-v1.4.md",
+      "source_heading": "### directions/weather.txt",
+      "sha256": "84e9f852062564b1b1be2be8c7a62d8360a7761a1c275e5b67b8d9ffc60747bf"
+    },
+    "directions/lens.txt": {
+      "source": "specs/01-Image-Variations-Prompt-Revision-v1.4.md",
+      "source_heading": "### directions/lens.txt",
+      "sha256": "78c8951ee7a38b4c02136ba2ff68473e7f6a4696936ed1e761ec00dba6e40df2"
+    },
+    "directions/usage.txt": {
+      "source": "specs/01-Image-Variations-Prompt-Revision-v1.4.md",
+      "source_heading": "### directions/usage.txt",
+      "sha256": "d5bddd7b54f0496acb1d7c36fe028f903856ae93423497e78f2b343cbd85a870"
+    },
+    "directions/narrative.txt": {
+      "source": "specs/01-Image-Variations-Skill-v1.3.md",
+      "source_heading": "### 16.13.12 `narrative`｜情节拓展",
+      "sha256": "40ff3443e5fe58477cae0fc12d70852264f97ae69157c07e828a0c3e1c38f383"
+    }
+  }
+}

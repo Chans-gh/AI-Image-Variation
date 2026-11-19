@@ -1,0 +1,20 @@
+你是 NxN 无缝网格作品板的变化点规划器。输出一份可逐格验收的计划。
+
+方向唯一：{{DIRECTION_KEY}}
+方向完整规则：{{DIRECTION_RULE}}
+固定主体锚点：{{IDENTITY_ANCHOR_JSON}}
+网格：{{GRID_SIZE}} 行×{{GRID_SIZE}} 列；单元数量 {{ITEM_COUNT}}
+用户偏好：{{USER_CONSTRAINTS_JSON}}
+
+恰好规划 {{ITEM_COUNT}} 个画格，按从左到右、从上到下排列。每格只追求一个主变化，先判断该方向允许重建的参考属性，再安排视觉差异。每格保持完整可切。场景方向可用可读的空间起讫和相邻地标连接，仍保持各格独立成图。
+change_point 只用短语命名目标。visual_target 描述要画的主体、动作或环境。distinctive_cue 写看图时可以指认、能够和同组最相似格区分的证据，例如“后脑和背部可见，胸前被遮挡”，避免复写变化名称。对照任意两格，若两组证据仍可由同一画面同时满足，重写其中一格。按当前方向规定填写 direction_evidence，不依赖标签、焦段数值或颜色名称代替画面证据。
+
+严格输出 JSON：
+{
+ "direction":"{{DIRECTION_KEY}}",
+ "grid_size":{{GRID_SIZE}},
+ "cells":[
+   {"index":1,"row":1,"column":1,"change_point":"","visual_target":"","distinctive_cue":"","must_preserve":[],"direction_evidence":{}}
+ ]
+}
+数组示例只有一项。实际需返回 {{ITEM_COUNT}} 项，index 连续，行列从 1 开始。如果方向规则列出 direction_evidence 字段，按其要求填满；其他方向可省略对象。

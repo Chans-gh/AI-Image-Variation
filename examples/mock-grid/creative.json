@@ -1,0 +1,163 @@
+{
+  "normalized": {
+    "normalized_prompt": "同一个合成几何物件，椭圆形主体和固定底色；仅用于软件测试。",
+    "subject_type": "object",
+    "subject": "synthetic test object",
+    "identity_anchor": "同一个合成几何物件，椭圆形主体和固定底色；仅用于软件测试。",
+    "scene": "synthetic fixture",
+    "style": "flat shapes",
+    "lighting": "uniform",
+    "composition": "center",
+    "quality": "fixture",
+    "keep_stable": [
+      "object identity"
+    ],
+    "discarded": []
+  },
+  "anchor": {
+    "subject_type": "object",
+    "identity_anchor": "同一个合成几何物件，椭圆形主体和固定底色；仅用于软件测试。",
+    "immutable_identity": [
+      "ellipse"
+    ],
+    "direction_locked": [],
+    "direction_allowed": [
+      "state"
+    ],
+    "inferred_defaults": [],
+    "visual_world": "synthetic fixtures",
+    "source": "text_description"
+  },
+  "plan": {
+    "direction": "state",
+    "grid_size": 3,
+    "cells": [
+      {
+        "index": 1,
+        "change_point": "state fixture variation 1",
+        "visual_target": "Synthetic visible state 1",
+        "phase_label": "phase 1",
+        "order_context": "phase 1 of 9",
+        "locked_elements": [],
+        "row": 1,
+        "column": 1,
+        "distinctive_cue": "state fixture variation 1",
+        "must_preserve": [
+          "identity"
+        ]
+      },
+      {
+        "index": 2,
+        "change_point": "state fixture variation 2",
+        "visual_target": "Synthetic visible state 2",
+        "phase_label": "phase 2",
+        "order_context": "phase 2 of 9",
+        "locked_elements": [],
+        "row": 1,
+        "column": 2,
+        "distinctive_cue": "state fixture variation 2",
+        "must_preserve": [
+          "identity"
+        ]
+      },
+      {
+        "index": 3,
+        "change_point": "state fixture variation 3",
+        "visual_target": "Synthetic visible state 3",
+        "phase_label": "phase 3",
+        "order_context": "phase 3 of 9",
+        "locked_elements": [],
+        "row": 1,
+        "column": 3,
+        "distinctive_cue": "state fixture variation 3",
+        "must_preserve": [
+          "identity"
+        ]
+      },
+      {
+        "index": 4,
+        "change_point": "state fixture variation 4",
+        "visual_target": "Synthetic visible state 4",
+        "phase_label": "phase 4",
+        "order_context": "phase 4 of 9",
+        "locked_elements": [],
+        "row": 2,
+        "column": 1,
+        "distinctive_cue": "state fixture variation 4",
+        "must_preserve": [
+          "identity"
+        ]
+      },
+      {
+        "index": 5,
+        "change_point": "state fixture variation 5",
+        "visual_target": "Synthetic visible state 5",
+        "phase_label": "phase 5",
+        "order_context": "phase 5 of 9",
+        "locked_elements": [],
+        "row": 2,
+        "column": 2,
+        "distinctive_cue": "state fixture variation 5",
+        "must_preserve": [
+          "identity"
+        ]
+      },
+      {
+        "index": 6,
+        "change_point": "state fixture variation 6",
+        "visual_target": "Synthetic visible state 6",
+        "phase_label": "phase 6",
+        "order_context": "phase 6 of 9",
+        "locked_elements": [],
+        "row": 2,
+        "column": 3,
+        "distinctive_cue": "state fixture variation 6",
+        "must_preserve": [
+          "identity"
+        ]
+      },
+      {
+        "index": 7,
+        "change_point": "state fixture variation 7",
+        "visual_target": "Synthetic visible state 7",
+        "phase_label": "phase 7",
+        "order_context": "phase 7 of 9",
+        "locked_elements": [],
+        "row": 3,
+        "column": 1,
+        "distinctive_cue": "state fixture variation 7",
+        "must_preserve": [
+          "identity"
+        ]
+      },
+      {
+        "index": 8,
+        "change_point": "state fixture variation 8",
+        "visual_target": "Synthetic visible state 8",
+        "phase_label": "phase 8",
+        "order_context": "phase 8 of 9",
+        "locked_elements": [],
+        "row": 3,
+        "column": 2,
+        "distinctive_cue": "state fixture variation 8",
+        "must_preserve": [
+          "identity"
+        ]
+      },
+      {
+        "index": 9,
+        "change_point": "state fixture variation 9",
+        "visual_target": "Synthetic visible state 9",
+        "phase_label": "phase 9",
+        "order_context": "phase 9 of 9",
+        "locked_elements": [],
+        "row": 3,
+        "column": 3,
+        "distinctive_cue": "state fixture variation 9",
+        "must_preserve": [
+          "identity"
+        ]
+      }
+    ]
+  }
+}

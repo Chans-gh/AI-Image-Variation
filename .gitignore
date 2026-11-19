@@ -1,18 +1,14 @@
-# 虚拟环境
 .venv/
 __pycache__/
-*.pyc
-
-# 运行产物（SPEC 00 §00.5：产物不提交 Git）
-workspace/
-# 本地私有扩展（真实平台接入/实测档案/上游报告），不进版本库
-local/
-out/
-/iv_*/
-*.zip.tmp
-
-# 本地配置与密钥（SPEC 01 §9.5：密钥只走宿主密钥库引用，绝不入库）
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
 .env
 .env.*
-secrets/
-*.secret
+!.env.example
+.work/
+artifacts/
+dist/
+build/
+.DS_Store

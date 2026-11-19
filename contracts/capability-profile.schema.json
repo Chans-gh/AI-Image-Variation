@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Provider-native capability profile",
+  "type": "object",
+  "required": ["provider_type", "model_id", "api_route", "profile_version", "environment", "verification", "supported_native_tiers", "supported_aspect_ratios", "reference_image_input", "mapping_kind", "tier_map"],
+  "properties": {
+    "provider_type": {"type": "string", "minLength": 1},
+    "model_id": {"type": "string", "minLength": 1},
+    "api_route": {"type": "string", "minLength": 1},
+    "reference_api_route": {"type": ["string", "null"]},
+    "profile_version": {"type": "string", "minLength": 1},
+    "environment": {"enum": ["builtin", "external", "mock"]},
+    "base_url": {"type": "string"},
+    "verification": {"type": "object", "required": ["status"], "properties": {
+      "status": {"enum": ["unverified", "documented", "verified", "mock"]},
+      "source": {"type": "string"}, "verified_at": {"type": ["string", "null"]}
+    }},
+    "supported_native_tiers": {"type": "array", "uniqueItems": true, "items": {"enum": ["1K", "2K", "4K"]}},
+    "supported_aspect_ratios": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[1-9][0-9]*:[1-9][0-9]*$"}},
+    "reference_image_input": {"type": "boolean"},
+    "mapping_kind": {"enum": ["native_tier_parameter", "verified_native_size_mapping"]},
+    "tier_map": {"type": "object", "additionalProperties": {"type": "object", "additionalProperties": {"$ref": "#/$defs/combination"}}},
+    "output_tolerance_policy": {"type": "object", "properties": {
+      "ratio_relative": {"type": "number", "minimum": 0, "maximum": 0.01}
+    }}
+  },
+  "$defs": {
+    "bound": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "integer", "minimum": 1}},
+    "combination": {"type": "object", "required": ["parameters"], "properties": {
+      "parameters": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string"}},
+      "expected_dimensions": {"type": ["array", "null"], "minItems": 1, "items": {"$ref": "#/$defs/bound"}},
+      "verified_dimension_range": {"type": ["object", "null"], "required": ["width", "height", "pixels"], "properties": {
+        "width": {"$ref": "#/$defs/bound"}, "height": {"$ref": "#/$defs/bound"}, "pixels": {"$ref": "#/$defs/bound"}
+      }}
+    }}
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "provider_type": "builtin",
+  "model_id": "gpt-image-2.6-sunburst",
+  "api_route": "codex.images.generations",
+  "reference_api_route": "codex.images.edits",
+  "profile_version": "opencodex-local-2026-11-18-size-audit",
+  "environment": "builtin",
+  "base_url": "http://127.0.0.1:10100/v1",
+  "tool_script_sha256": "1a8e2c011761f14d592274110ad50fe723ed596fe14b3bf74da5a640f82d29c0",
+  "verification": {
+    "status": "unverified",
+    "source": "docs/validation.md; native size and quality probes on the selected local route",
+    "verified_at": "2026-11-18"
+  },
+  "supported_native_tiers": [],
+  "supported_aspect_ratios": [
+    "1:1",
+    "3:4",
+    "4:5",
+    "16:9"
+  ],
+  "reference_image_input": true,
+  "mapping_kind": "verified_native_size_mapping",
+  "tier_map": {},
+  "output_tolerance_policy": {
+    "ratio_relative": 0.01
+  },
+  "observed_outputs": [
+    {
+      "requested_size": "2048x2048",
+      "requested_quality": "medium",
+      "native_width": 1254,
+      "native_height": 1254,
+      "reported_quality": "low"
+    },
+    {
+      "requested_size": "3840x2160",
+      "requested_quality": "high",
+      "native_width": 1672,
+      "native_height": 941,
+      "reported_quality": "low"
+    },
+    {
+      "requested_size": "auto",
+      "requested_aspect_ratio": "3:4",
+      "requested_quality": "low",
+      "native_width": 1086,
+      "native_height": 1448,
+      "reported_quality": "low"
+    }
+  ],
+  "notes": "Current route has no verified native 1K/2K/4K mapping. Keep unverified until new native output evidence supports the selected tier."
+}

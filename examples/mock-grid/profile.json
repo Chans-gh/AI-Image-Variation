@@ -1,0 +1,143 @@
+{
+  "provider_type": "mock",
+  "model_id": "synthetic-fixture-v1",
+  "api_route": "fixture",
+  "environment": "mock",
+  "profile_version": "fixture-1.0",
+  "reference_image_input": true,
+  "mapping_kind": "native_tier_parameter",
+  "supported_native_tiers": [
+    "1K",
+    "2K",
+    "4K"
+  ],
+  "supported_aspect_ratios": [
+    "3:4",
+    "4:3",
+    "1:1"
+  ],
+  "output_tolerance_policy": {
+    "ratio_relative": 0.01
+  },
+  "verification": {
+    "status": "mock",
+    "source": "synthetic deterministic fixtures; no model calls",
+    "verified_at": "2026-11-17"
+  },
+  "tier_map": {
+    "1K": {
+      "3:4": {
+        "parameters": {
+          "image_size": "1K",
+          "aspect_ratio": "3:4"
+        },
+        "expected_dimensions": [
+          [
+            96,
+            128
+          ]
+        ]
+      },
+      "4:3": {
+        "parameters": {
+          "image_size": "1K",
+          "aspect_ratio": "4:3"
+        },
+        "expected_dimensions": [
+          [
+            128,
+            96
+          ]
+        ]
+      },
+      "1:1": {
+        "parameters": {
+          "image_size": "1K",
+          "aspect_ratio": "1:1"
+        },
+        "expected_dimensions": [
+          [
+            128,
+            128
+          ]
+        ]
+      }
+    },
+    "2K": {
+      "3:4": {
+        "parameters": {
+          "image_size": "2K",
+          "aspect_ratio": "3:4"
+        },
+        "expected_dimensions": [
+          [
+            192,
+            256
+          ]
+        ]
+      },
+      "4:3": {
+        "parameters": {
+          "image_size": "2K",
+          "aspect_ratio": "4:3"
+        },
+        "expected_dimensions": [
+          [
+            256,
+            192
+          ]
+        ]
+      },
+      "1:1": {
+        "parameters": {
+          "image_size": "2K",
+          "aspect_ratio": "1:1"
+        },
+        "expected_dimensions": [
+          [
+            256,
+            256
+          ]
+        ]
+      }
+    },
+    "4K": {
+      "3:4": {
+        "parameters": {
+          "image_size": "4K",
+          "aspect_ratio": "3:4"
+        },
+        "expected_dimensions": [
+          [
+            384,
+            512
+          ]
+        ]
+      },
+      "4:3": {
+        "parameters": {
+          "image_size": "4K",
+          "aspect_ratio": "4:3"
+        },
+        "expected_dimensions": [
+          [
+            512,
+            384
+          ]
+        ]
+      },
+      "1:1": {
+        "parameters": {
+          "image_size": "4K",
+          "aspect_ratio": "1:1"
+        },
+        "expected_dimensions": [
+          [
+            512,
+            512
+          ]
+        ]
+      }
+    }
+  }
+}

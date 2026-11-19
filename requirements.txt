@@ -1,8 +1,0 @@
-# Image Variations Skill —— 运行与测试依赖
-#
-# 核心库只用标准库 + Pillow（接缝评分、切图、图片校验都必须有像素能力），
-# 不依赖 numpy / jsonschema：JSON Schema 校验用的是基线包内的 tests/schema_lite.py
-# （Draft 2020-12 子集，纯标准库）。
-
-# 实测环境：Python 3.12.14 + Pillow 13.0.0；也在 Python 3.9.6 + Pillow 11.3.0 下全绿
-Pillow>=10.0
