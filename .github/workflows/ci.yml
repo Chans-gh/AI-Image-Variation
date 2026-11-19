@@ -25,8 +25,8 @@ jobs:
       - run: uv run --locked ruff format --check .
       - name: Verify standalone Skill ZIP
         run: |
-          uv run --locked python scripts/build_skill.py
-          python -m zipfile -e dist/image-variations-0.1.0.zip "$RUNNER_TEMP/skill01"
+          uv run --locked python scripts/build_skill.py --output "$RUNNER_TEMP/skill01.zip"
+          python -m zipfile -e "$RUNNER_TEMP/skill01.zip" "$RUNNER_TEMP/skill01"
           cd "$RUNNER_TEMP/skill01"
           entry=image-variations/scripts/run_task.py
           "$GITHUB_WORKSPACE/.venv/bin/python" "$entry" demo --mode grid --grid-size 3 --job grid-job --output results
