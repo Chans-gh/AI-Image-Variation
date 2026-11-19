@@ -9,80 +9,47 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   tests:
     name: tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-          cache: pip
-      - name: 安装依赖（只需要 Pillow）
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-      - name: 部署自检（--self-check，退出码 0 才算环境可用）
-        run: python skills/image-variations/scripts/run_task.py --self-check --pretty
-      - name: 基线只读校验（238/238）
-        run: python shared/check_baseline.py
-      - name: 基线自带契约（24/24）
-        run: python Image_Variations_Dual_Skill_SPEC_v1.1/tests/validate_example_contracts.py
-      - name: Skill 01 全量套件（10 套）
-        run: python skills/image-variations/tests/run_all.py
-      - name: 端到端冒烟（Grid + Sequence，合成 Provider）
-        run: |
-          echo '{"task_id":"ci_grid","output_mode":"grid","grid_size":2,"direction":"light",
-                 "input_type":"text_only","subject":"一只浅灰陶瓷杯",
-                 "provider":{"type":"mock_synthetic"},"pack_zip":true}' > /tmp/ci_grid.json
-          python skills/image-variations/scripts/run_task.py --input /tmp/ci_grid.json --workspace ./workspace
-          echo '{"task_id":"ci_seq","output_mode":"sequence","image_count":4,"branch":"progression",
-                 "direction":"light","input_type":"text_only","subject":"一只浅灰陶瓷杯",
-                 "provider":{"type":"mock_synthetic"}}' > /tmp/ci_seq.json
-          python skills/image-variations/scripts/run_task.py --input /tmp/ci_seq.json --workspace ./workspace
-          echo "--- 部署错误必须走 deployment_error 且退出码 4（模拟只搬技能目录）---"
-          rm -rf /tmp/ci_skill_only && mkdir -p /tmp/ci_skill_only
-          cp -R skills/image-variations /tmp/ci_skill_only/
-          set +e
-          IV_REPO_ROOT=/tmp/ci_skill_only python /tmp/ci_skill_only/image-variations/scripts/run_task.py \
-            --input /tmp/ci_grid.json --workspace /tmp/ci_skill_only_ws > /tmp/ci_deploy.json 2>/tmp/ci_deploy.err
-          code=$?
-          set -e
-          test "$code" = "4" || { echo "期望退出码 4，实际 $code"; cat /tmp/ci_deploy.json; exit 1; }
-          grep -q '"deployment_error"' /tmp/ci_deploy.json
-          ! grep -q '"error"' /tmp/ci_deploy.json
-          ! grep -qi 'Traceback' /tmp/ci_deploy.err /tmp/ci_deploy.json
-          python - <<'PY'
-          import json, pathlib
-          for name in ("ci_grid", "ci_seq"):
-              manifest = json.loads(pathlib.Path(f"workspace/iv_{name}_rev1/manifest.json").read_text())
-              assert manifest["status"] == "completed", manifest["status"]
-              print(name, manifest["output_mode"], manifest["status"], len(manifest["images"]))
-          PY
-
-  tests-py39:
-    name: tests-py39
-    # 必须钉住 24.04：ubuntu-latest 已迁到 26.04，而该镜像没有 Python 3.9
-    # （setup-python 报 "The version '3.9' with architecture 'x64' was not found for Ubuntu 26.04"）
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.9"
-          cache: pip
-      - name: 安装依赖（只需要 Pillow）
+          python-version: "3.12"
+      - run: python -m pip install uv
+      - run: uv sync --locked --extra dev
+      - run: uv run --locked pytest -q
+      - run: uv run --locked ruff check .
+      - run: uv run --locked ruff format --check .
+      - name: Verify standalone Skill ZIP
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-      - name: 部署自检（--self-check，退出码 0 才算环境可用）
-        run: python skills/image-variations/scripts/run_task.py --self-check --pretty
-      - name: 基线只读校验（238/238）
-        run: python shared/check_baseline.py
-      - name: Skill 01 全量套件（10 套）
-        run: python skills/image-variations/tests/run_all.py
+          uv run --locked python scripts/build_skill.py
+          python -m zipfile -e dist/image-variations-0.1.0.zip "$RUNNER_TEMP/skill01"
+          cd "$RUNNER_TEMP/skill01"
+          entry=image-variations/scripts/run_task.py
+          "$GITHUB_WORKSPACE/.venv/bin/python" "$entry" demo --mode grid --grid-size 3 --job grid-job --output results
+          "$GITHUB_WORKSPACE/.venv/bin/python" "$entry" demo --mode sequence --count 4 --branch narrative --job sequence-job --output results
+
+  tests-py39:
+    name: tests-py39
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip wheel --no-deps --wheel-dir "$RUNNER_TEMP/skill-wheel" .
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.9"
+      - name: Verify the wheel rejects Python 3.9
+        run: |
+          if python -m pip install --dry-run --no-deps "$RUNNER_TEMP"/skill-wheel/*.whl > "$RUNNER_TEMP/compat.log" 2>&1; then
+            cat "$RUNNER_TEMP/compat.log"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/compat.log"
+          grep -F 'requires a different Python' "$RUNNER_TEMP/compat.log"
+          grep -F '>=3.11' "$RUNNER_TEMP/compat.log"
