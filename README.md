@@ -2,13 +2,13 @@
 
 基于 [SPEC 01 v1.3](specs/01-Image-Variations-Skill-v1.3.md) 的 Phase 1 开发实现。输入单张参考图、文本或图文，生成同一主体的 Grid 作品板或 Sequence 图片组，并完成原生尺寸验收、视觉检查交接、切图、清单与打包。
 
-当前发布 **Skill 01 · 0.1.0 开发预览**。Grid 支持 2×2、3×3、4×4，Sequence 支持 4–16 张独立图片。两种模式共享十二个变化方向。正式生图需要对应型号和路由的已验证能力档案，以及宿主的实际视觉检查。 [验证记录](docs/validation.md)
+当前发布 **Skill 01 · 0.1.1 开发预览**。Grid 支持 2×2、3×3、4×4，Sequence 支持 4–16 张独立图片。两种模式共享十二个变化方向。正式生图需要对应型号和路由的已验证能力档案，以及宿主的实际视觉检查。 [验证记录](docs/validation.md)
 
 提示词库为 **1.4.3**。视角、场景、时间天气、镜头语言和用途采用可逐格或逐帧验收的方向字段。 [提示词修订规范](specs/01-Image-Variations-Prompt-Revision-v1.4.md)
 
 ## 安装 Skill 01
 
-从 Releases 下载 `image-variations-0.1.0.zip`，解压并将完整的 `image-variations/` 目录放入宿主的 Skill 搜索路径。包内包含 `SKILL.md`、方向规则、提示词、运行时和契约。 [GitHub Releases](https://github.com/Chans-gh/AI-Image-Variation/releases)
+从 Releases 下载 `image-variations-0.1.1.zip`，解压并将完整的 `image-variations/` 目录放入宿主的 Skill 搜索路径。包内包含 `SKILL.md`、方向规则、提示词、运行时和契约。 [GitHub Releases](https://github.com/Chans-gh/AI-Image-Variation/releases)
 
 在解压目录使用 Python 3.11 或以上版本安装依赖，再运行离线演示。
 
@@ -67,7 +67,7 @@ P1-01 参数解析 → 按需 P1-02 归一化 → P1-03 主体锚点
 uv run --locked python scripts/build_skill.py
 ```
 
-产出 `dist/image-variations-0.1.0.zip`。安装包可在仓库之外独立运行。
+产出 `dist/image-variations-0.1.1.zip`。安装包可在仓库之外独立运行。
 
 ## 仓库布局
 

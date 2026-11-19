@@ -2,7 +2,7 @@
 name: image-variations
 description: 将单张参考图、文本或图文围绕同一主体和一个变化方向生成系列图片，支持 2×2/3×3/4×4 无缝网格并自动切图，或 4–16 张有序独立图片。用于多图变体、九宫格、同主体系列、渐进或叙事序列；输出图片资产和清单。
 metadata:
-  version: 0.1.0
+  version: 0.1.1
   spec_version: "1.3"
   prompt_revision: "1.4.3"
 ---
