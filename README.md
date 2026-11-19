@@ -1,185 +1,89 @@
-# Image Variations 双 Skill 实现仓库
+# AI Image Variation
 
-[![CI](https://github.com/Chans-gh/AI-Image-Variation/actions/workflows/ci.yml/badge.svg)](https://github.com/Chans-gh/AI-Image-Variation/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](requirements.txt)
+基于 [SPEC 01 v1.3](specs/01-Image-Variations-Skill-v1.3.md) 的 Phase 1 开发实现。输入单张参考图、文本或图文，生成同一主体的 Grid 作品板或 Sequence 图片组，并完成原生尺寸验收、视觉检查交接、切图、清单与打包。
 
-本仓库是 `Image_Variations_Dual_Skill_SPEC_v1.1` 规范包的**实现层**，按 SPEC 00 §00.4 的单仓库双 Skill 结构落地。
+当前发布 **Skill 01 · 0.1.0 开发预览**。Grid 支持 2×2、3×3、4×4，Sequence 支持 4–16 张独立图片。两种模式共享十二个变化方向。正式生图需要对应型号和路由的已验证能力档案，以及宿主的实际视觉检查。 [验证记录](docs/validation.md)
 
-| 目录 | 作用 | 写入权限 |
-|---|---|---|
-| `Image_Variations_Dual_Skill_SPEC_v1.1/` | 冻结规范基线（只读） | **禁止修改**。`shared/baseline.py` 用哈希清单校验 |
-| `skills/image-variations/` | Skill 01 实现（本次范围） | 可写 |
-| `skills/image-content-publishing/` | Skill 02（不在本次范围） | 预留 |
-| `shared/` | 跨 Skill 通用件：哈希、安全路径、交付包、错误码 | 可写 |
+提示词库为 **1.4.3**。视角、场景、时间天气、镜头语言和用途采用可逐格或逐帧验收的方向字段。 [提示词修订规范](specs/01-Image-Variations-Prompt-Revision-v1.4.md)
 
-## O-02 决议（本轮已确认）
+## 安装 Skill 01
 
-**方案 B：宿主无关 Python 核心库 + `SKILL.md` 编排形态**
+从 Releases 下载 `image-variations-0.1.0.zip`，解压并将完整的 `image-variations/` 目录放入宿主的 Skill 搜索路径。包内包含 `SKILL.md`、方向规则、提示词、运行时和契约。 [GitHub Releases](https://github.com/Chans-gh/AI-Image-Variation/releases)
 
-- 核心库：`skills/image-variations/scripts/iv_skill/`，纯 Python + Pillow，不绑定任何宿主 API。
-- 入口壳：`run_task.py`（JSON 进 / JSON 出）、`SKILL.md`（DSH 发现与编排，只写流程不写业务规则）。
-- `builtin` 仅提供可注入接口；DSH 无内置生图时显式返回 `BUILTIN_UNAVAILABLE`，不静默降级。
-- 本轮全链路证据用 Mock / 合成 Provider（`tests/mock_provider.py`、`iv_skill/synthetic.py`）打通；
-  真实密钥到位后只补适配器实现（字段名待真实响应确认）。
+在解压目录使用 Python 3.11 或以上版本安装依赖，再运行离线演示。
 
-## 现在的状态
-
-五个阶段全部落地并有测试证据（阈值校准仍待真实模型）：
-
-| 阶段 | 内容 | 入口 |
-|---|---|---|
-| 0–1 | 仓库骨架、契约与夹具、48 项契约测试 | `tests/run_contract_tests.py` |
-| 2 | Provider 能力抽象、两协议适配、错误归一、SSRF 防护、排产预检 | `iv_skill/preflight.py` |
-| 3 | Grid 一次成板、D-24 接缝评分、确定性切图、整板重试与预算 | `iv_skill/executor.py` |
-| 4 | Sequence 计划先行、图 1 锚点、失败保槽与续跑、近重复处理 | `iv_skill/sequence.py` |
-| 5 | 产物清单、交付包与 ZIP、`SKILL.md` 入口、JSON CLI | `scripts/run_task.py` |
-
-用法见 [`skills/image-variations/SKILL.md`](skills/image-variations/SKILL.md)。最小示例：
-
-```bash
-echo '{"task_id":"demo","output_mode":"grid","grid_size":2,"direction":"light",
-       "input_type":"text_only","subject":"一只浅灰陶瓷杯","provider":{"type":"mock_synthetic"}}' \
-  > /tmp/task.json
-.venv/bin/python skills/image-variations/scripts/run_task.py --input /tmp/task.json \
-  --workspace ./workspace --pretty
+```sh
+python -m pip install -r image-variations/scripts/requirements.txt
+python image-variations/scripts/run_task.py demo --mode grid --grid-size 3
 ```
 
-## 单一真相源（不复制基线）
+WorkBuddy 与 DeepSeek Harness 通过标准 `SKILL.md` 和文件桥接接入，两端的实机安装验证尚待完成。 [宿主流程](skills/image-variations/references/host-workflow.md)
 
-契约、方向注册表、错误码**不在本仓库复制**，运行时从基线读取：
+## 从源码运行
 
-| 数据 | 基线位置 |
-|---|---|
-| 契约 Schema | `contracts/*.schema.json` |
-| 12 方向规则 | `references/directions/registry.json` |
-| 错误码 | `references/error-registry.json` |
-| Prompt 模板 | `references/grid-prompt.md` / `sequence-prompt.md` |
+需要 Python 3.11 或以上版本。使用 uv 安装锁定的依赖。
 
-`shared/baseline.py` 负责路径解析与只读校验，并提供哈希清单防止基线被隐式修改。
+```sh
+uv sync --locked --extra dev
+uv run --locked image-variations --help
+uv run --locked pytest -q
+```
 
-## 阈值全部外置
+离线演示不需要凭据或网络生图：
 
-`skills/image-variations/config/iv.config.json` 是唯一阈值来源（`tile_edge_min_px=1024`、`tile_edge_warn_px=768`、`tile_edge_hard_min_px=512`、`seam_pass=0.85`、`seam_risk=0.60`、Grid 尝试上限、单帧重试上限、预算）。规范已声明这些值**未经真实模型校准**，代码不得内联这些数值。
+```sh
+uv run image-variations demo --mode grid --grid-size 3
+uv run image-variations demo --mode sequence --count 4 --branch progression
+```
 
-## 在 DeepSeek Harness（GUI）里使用
+返回状态包含 artifact_path，其中有整板及 tiles，或 sequence、manifest.json 和 delivery-package.json。示例默认另建 ZIP；所有演示产物标记 synthetic_fixture=true。
 
-仓库里的 `skills/image-variations/` 同时是一个 DSH 技能。仓库**自带**发现入口：
+## 实际使用
+
+入口是 [SKILL.md](skills/image-variations/SKILL.md)。宿主使用完整规范提示词完成参数解析、主体锚定与创意计划；程序不会凭空生成一套通用画面冒充模型规划。
 
 ```text
-.dsh/skills/image-variations -> ../../skills/image-variations   （29 字节相对符号链接）
+P1-01 参数解析 → 按需 P1-02 归一化 → P1-03 主体锚点
+→ Grid P1-04 / Sequence P1-06 计划
+→ create 预检 → step 单次生图 → 宿主 P1-09 检查 → review
+→ 下一帧 / 有限重试 / 图片与包清单交付
 ```
 
-DSH 按优先级扫描技能根，`<项目根>/.dsh/skills`（rank 100）优先于全局 `~/.dsh/skills`
-（rank 400）。所以 **clone 之后在本仓库打开 DSH 即可直接触发，无需安装**：
+[宿主流程与命令](skills/image-variations/references/host-workflow.md) 说明完整输入与操作；[Provider 接入](skills/image-variations/references/provider-compat.md) 说明 GPT Image、Gemini、内置工具和能力验证。`examples/mock-grid/` 提供可运行的结构示例。
 
-> "把这只杯子做成 2×2 的九宫格，light 方向"
+本机 `codex-image` 0.4.0 可通过 Images 路由请求 GPT Image 2.6。接入时按模型和端点验证原生尺寸，再创建能力档案。外部兼容接口使用用户选定的 HTTPS 端点，凭据通过环境变量名称注入。
 
-想让所有项目都能用，再补一条全局链接即可（同名时项目内优先）：
+## 原生分辨率
 
-```bash
-ln -s "<REPO_ROOT>/skills/image-variations" ~/.dsh/skills/image-variations
+- Grid：2×2/3×3/4×4 默认向**整板**请求 1K/2K/4K，再切成 4/9/16 张。
+- Sequence：4–16 张，每张默认原生 1K，可指定 2K/4K。
+- K 档由具体模型与路由决定。缺少有效档位/比例组合时，在生图前报错；不将 auto、quality 或放大视为原生高分辨率。
+- 原始返回像素与几何处理后像素分开记录。Grid 只允许每轴 ≤1% 的整除微调，原始与有效比例分别检查。
+- 有图序列始终引用原图；纯文本序列首帧通过后，其余帧始终引用首帧。
+
+## 构建安装包
+
+```sh
+uv run --locked python scripts/build_skill.py
 ```
 
-符号链接不影响运行：`run_task.py` 用 `Path(__file__).resolve()` 定位仓库根，
-因此不管从哪个目录触发，基线、`shared/` 与 `.venv/` 都能找到。
-（手工拼路径时要注意 `cd -P`，原因见 `SKILL.md` §〇 —— bash 逻辑 `cd` 会把 `..` 算错。）
+产出 `dist/image-variations-0.1.0.zip`。安装包可在仓库之外独立运行。
 
-## 部署到其他宿主（Workbuddy 等）
-
-宿主只要**技能目录 + 能执行 shell + Python + 读写文件**即可。最小分发集 4.6M：
+## 仓库布局
 
 ```text
-<REPO_ROOT>/{shared/, Image_Variations_Dual_Skill_SPEC_v1.1/, skills/, requirements.txt}
+skills/image-variations/   独立 Skill、规范提示词、Python 运行时
+shared/                   相对路径、图像产物和交付包校验器
+contracts/                1.0 / 1.1 图像产物及能力档案契约
+specs/                    00 架构、01 生图、02 内容生产、03 集成及提示词修订
+tests/                    协议、尺寸、执行、恢复及安全测试
+docs/                     验证记录、实现决策和开发待办
+examples/mock-grid/       脱敏合成结构示例
+.work/ artifacts/ dist/   本地任务、产物和构建包（不入 Git）
 ```
 
-装完先自检（六项：Python / Pillow / 仓库根 / 基线 238 文件 / 技能配置与 12 方向 / workspace 可写）：
+## 后续开发
 
-```bash
-python "$SKILL_DIR/scripts/run_task.py" --self-check --pretty   # ok:true + 退出码 0 即可用
-```
+Skill 02 将基于已完成的图片清单生成公众号和小红书素材包。当前仓库提供其规格及开发顺序。Skill 01 成功后可以推荐内容生产，由用户主动启动。 [开发待办](docs/ROADMAP.md) · [SPEC 02](specs/02-Image-Content-Publishing-Skill-v1.1.md) · [SPEC 03](specs/03-Integration-and-Artifact-Contract-v1.1.md)
 
-两种布局都支持：**整仓**（零配置）与**分离**（技能与依赖分开放，用 `IV_REPO_ROOT` /
-`IV_BASELINE_ROOT` 指定）。退出码 `4` 专表**部署不完整**，走 `deployment_error`、**不占用业务错误码**，
-所以宿主不会把"装错了"误判成模型问题而重试。完整说明见
-[`skills/image-variations/DEPLOY.md`](skills/image-variations/DEPLOY.md)。
-（**不要搬 `.venv/`**：里面是创建时的绝对路径，换机即坏。）
-
-## 环境准备
-
-```bash
-git clone git@github.com:Chans-gh/AI-Image-Variation.git
-cd AI-Image-Variation
-python3 -m venv .venv && . .venv/bin/activate
-python -m pip install -r requirements.txt        # 只需要 Pillow
-```
-
-实测环境：Python 3.12.14 + Pillow 13.0.0；Python 3.9.6 + Pillow 11.3.0 亦全绿。
-
-## 快速自检
-
-```bash
-# 基线只读性与基线测试（保持 24/24 全绿）
-.venv/bin/python shared/check_baseline.py
-.venv/bin/python Image_Variations_Dual_Skill_SPEC_v1.1/tests/validate_example_contracts.py
-
-# Skill 01 契约与夹具
-.venv/bin/python skills/image-variations/tests/run_contract_tests.py
-
-# Skill 01 全量（会自动带上本地私有套件）
-.venv/bin/python skills/image-variations/tests/run_all.py
-
-# 模拟 CI：不带任何本地扩展
-.venv/bin/python skills/image-variations/tests/run_all.py --no-local
-```
-
-### 本地私有扩展（不进版本库）
-
-本仓库**只带通用适配器**（`openai_image_compatible` / `gemini_image_compatible` / `mock`）
-与一个加载机制；真实平台接入（域名、模型 ID、按实测回填的能力档案、上游问题记录）
-属于本机测试环境，放在 `local/`（已在 `.gitignore`）：
-
-```
-local/                               # 或用 IV_LOCAL_ROOT 指到别处
-├── <平台>/providers/<平台>_compat.py # 适配器插件：提供 register(registry) 或 ADAPTERS
-├── <平台>/provider-profiles.json     # 能力档案，按档案名并入基础档案
-├── <平台>/iv.config.local.json       # 配置覆盖，深合并到 iv.config.json
-└── <平台>/tests/test_*.py            # 本地专属套件，run_all.py 自动发现
-```
-
-约定与边界：
-
-- 本地目录**不存在是正常情况**（CI 与公开克隆都没有），此时请求未注册的 `provider_type`
-  会得到带指引的显式错误，而不是静默降级；
-- 插件加载失败、档案缺段一律**显式报错**（`BUILTIN_UNAVAILABLE` / `INVALID_INPUT`），不静默跳过；
-- 用 `IV_CONFIG` / `IV_PROFILES` **注入**配置或档案时**不合并**本地覆盖，保证测试可重复；
-- 能力声明必须实测回填（规则包 `references/provider-compat.md` §104），仓库里只留字段模板，
-  不猜任何真实平台的档位边长。
-
-批量跑测台 `scripts/run_matrix.py` 的档案名、主体描述、密钥引用全部由命令行/环境变量提供，
-代码里不写死任何平台（密钥只以 `secret://` / `env:` 引用形式出现）。
-
-## 证据与阶段
-
-每阶段的测试输出与已知缺口记录在 [`docs/PHASE_EVIDENCE.md`](docs/PHASE_EVIDENCE.md)。
-
-> **发布检查清单**：`git status` 干净不代表仓库完整。发布前必须 `git clone` 到空目录，
-> 在**干净克隆**里跑一遍 `shared/check_baseline.py` 与 `tests/run_all.py`——
-> 本项目第一次发布就因此发现 `.gitignore` 的 `iv_*/` 把整个 `iv_skill/` 核心包静默漏掉了。
-
-## 持续集成
-
-`.github/workflows/ci.yml` 在每次 push / PR 上跑两个任务：
-
-| 任务 | Runner | 内容 |
-|---|---|---|
-| `tests`（Python 3.12） | ubuntu-latest | 基线只读校验 → 基线自带契约 24/24 → Skill 01 全量 11 套件 → Grid/Sequence 端到端冒烟 |
-| `tests-py39`（Python 3.9） | ubuntu-24.04（钉住，26.04 已无 3.9） | 基线只读校验 → Skill 01 全量 11 套件 |
-
-`main` 分支已开启保护：**两个任务必须全绿、分支必须与 main 同步、禁止强推与删除**，
-改动请走「开分支 → 提 PR → 等 CI → 合并」。Actions 与依赖版本由 Dependabot 每周提 PR，
-`.gitattributes` 把冻结基线标为 `-text`，避免 Windows 克隆改写换行导致 238/238 误报。
-
-## 许可
-
-[MIT](LICENSE) © 2026 Chans-gh
+本仓库沿用 MIT 许可。 [LICENSE](LICENSE)

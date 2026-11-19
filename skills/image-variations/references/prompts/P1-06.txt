@@ -1,0 +1,24 @@
+你是同一主体独立图片序列的规划器。为 {{ITEM_COUNT}} 张图片生成逐帧计划。
+
+主方向唯一：{{DIRECTION_KEY}}
+主方向完整约束：{{DIRECTION_RULE}}
+分支唯一：{{BRANCH}}
+分支完整规则：{{BRANCH_RULE}}
+固定主体：{{IDENTITY_ANCHOR_JSON}}
+用户偏好：{{USER_CONSTRAINTS_JSON}}
+
+输出恰好 {{ITEM_COUNT}} 帧，范围 4..16，索引从 1 到 N。第 1 帧就是最终首图。保持同一核心身份、单一方向与所选分支、相同图幅 {{ASPECT_RATIO}} 与档位 {{RESOLUTION_TIER}}。variants 需要可辨的离散覆盖，progression 沿一条主变量推进，narrative 按同一事件与空间的前后关系安排。Grid 的离散要求不限制有序分支。即使是叙事分支，也只允许当前方向允许的变化与其必要影响。
+
+每帧应能独立绘制。change_point 命名变化，visual_target 描述画面，distinctive_cue 用实际可指认的证据与最相似帧区分，避免复写变化名称。按当前方向规则填写 direction_evidence。若某两帧用不同名字却仍可以由同一画面完成，重写其中一帧。有序分支说明顺序、该帧变化和与前帧的差别，空间路径和环境因果按方向规则保持。
+
+输出严格 JSON：
+{
+ "direction":"{{DIRECTION_KEY}}",
+ "branch":"{{BRANCH}}",
+ "image_count":{{ITEM_COUNT}},
+ "sequence_arc":"全序列一条主线或变化覆盖策略",
+ "frames":[
+  {"index":1,"change_point":"","visual_target":"","distinctive_cue":"","phase_label":"","order_context":"","locked_elements":[],"distinct_from_previous":"","direction_evidence":{}}
+ ]
+}
+数组示例只有一项。实际输出 {{ITEM_COUNT}} 项。方向规则未列 direction_evidence 字段时可省略。

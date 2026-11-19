@@ -1,0 +1,21 @@
+{
+  "provider_type": "builtin",
+  "model_id": "FILL_EXACT_MODEL_ID",
+  "api_route": "HOST_TOOL_ROUTE",
+  "profile_version": "unverified-template-1",
+  "environment": "builtin",
+  "verification": {
+    "status": "unverified",
+    "source": "Await selected model / route documentation and authorized live tests",
+    "verified_at": null
+  },
+  "supported_native_tiers": [],
+  "supported_aspect_ratios": [],
+  "reference_image_input": false,
+  "mapping_kind": "verified_native_size_mapping",
+  "tier_map": {},
+  "output_tolerance_policy": {
+    "ratio_relative": 0.01
+  },
+  "notes": "Do not claim capability from this template. It intentionally fails preflight."
+}

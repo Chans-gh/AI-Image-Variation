@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/image-variations/contracts/image-artifact-1.0.schema.json",
+  "title": "Image Variations Image Artifact v1.0 (proposal)",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "task_id", "artifact_revision", "status", "input_type", "output_mode", "direction", "image_count", "requested_aspect_ratio", "requested_resolution_tier", "images", "validation", "created_at", "completed_at"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_type": {"const": "image_variations"},
+    "task_id": {"type": "string", "minLength": 1},
+    "artifact_revision": {"type": "string", "minLength": 1},
+    "status": {"enum": ["completed", "partial_failed", "failed"]},
+    "input_type": {"enum": ["image_only", "text_only", "image_plus_text"]},
+    "output_mode": {"enum": ["grid", "sequence"]},
+    "direction": {"type": "string", "minLength": 1},
+    "branch": {"type": ["string", "null"], "enum": ["variants", "progression", "narrative", null]},
+    "grid_size": {"type": ["integer", "null"], "enum": [2, 3, 4, null]},
+    "image_count": {"type": "integer", "minimum": 4, "maximum": 16},
+    "requested_aspect_ratio": {"type": "string", "pattern": "^[1-9][0-9]*:[1-9][0-9]*$"},
+    "actual_aspect_ratio": {"type": "string", "minLength": 3},
+    "requested_resolution_tier": {"enum": ["1K", "2K", "4K"]},
+    "provider_type": {"type": "string"},
+    "model_id": {"type": "string"},
+    "direction_rules_version": {"type": "string"},
+    "prompt_template_version": {"type": "string"},
+    "consistency_anchor": {"type": "object"},
+    "grid_size_source": {"type": "string"},
+    "images": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/image"}
+    },
+    "validation": {
+      "type": "object",
+      "required": ["asset_integrity_passed"],
+      "properties": {
+        "asset_integrity_passed": {"type": "boolean"},
+        "grid_structure_passed": {"type": "boolean"},
+        "sequence_complete": {"type": "boolean"}
+      },
+      "additionalProperties": true
+    },
+    "errors": {"type": "array", "items": {"type": "object"}},
+    "retry_counts": {"type": "object"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "completed_at": {"type": "string", "format": "date-time"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"output_mode": {"const": "grid"}}, "required": ["output_mode"]},
+      "then": {
+        "required": ["grid_size", "branch"],
+        "properties": {"grid_size": {"enum": [2,3,4]}, "branch": {"type": "null"}}
+      }
+    },
+    {
+      "if": {"properties": {"output_mode": {"const": "sequence"}}, "required": ["output_mode"]},
+      "then": {
+        "required": ["branch"],
+        "properties": {"grid_size": {"type": "null"}, "branch": {"enum": ["variants", "progression", "narrative"]}}
+      }
+    }
+  ],
+  "$defs": {
+    "image": {
+      "type": "object",
+      "required": ["id", "kind", "index", "path", "width", "height", "sha256", "status"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["board", "tile", "frame"]},
+        "index": {"type": "integer", "minimum": 0},
+        "path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+"},
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1},
+        "format": {"type": "string"},
+        "sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+        "status": {"enum": ["completed", "failed"]},
+        "row": {"type": "integer", "minimum": 1},
+        "column": {"type": "integer", "minimum": 1},
+        "crop_box": {
+          "type": "array", "prefixItems": [{"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 1}, {"type": "integer", "minimum": 1}], "minItems": 4, "maxItems": 4
+        },
+        "phase_label": {"type": "string"},
+        "story_context": {"type": "string"},
+        "prompt_summary": {"type": "string"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

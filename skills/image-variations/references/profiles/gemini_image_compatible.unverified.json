@@ -1,0 +1,22 @@
+{
+  "provider_type": "gemini_image_compatible",
+  "model_id": "FILL_EXACT_MODEL_ID",
+  "api_route": "generateContent",
+  "profile_version": "unverified-template-1",
+  "environment": "external",
+  "verification": {
+    "status": "unverified",
+    "source": "Await selected model / route documentation and authorized live tests",
+    "verified_at": null
+  },
+  "supported_native_tiers": [],
+  "supported_aspect_ratios": [],
+  "reference_image_input": false,
+  "mapping_kind": "native_tier_parameter",
+  "tier_map": {},
+  "output_tolerance_policy": {
+    "ratio_relative": 0.01
+  },
+  "notes": "Do not claim capability from this template. It intentionally fails preflight.",
+  "base_url": "https://example.invalid/v1beta"
+}
