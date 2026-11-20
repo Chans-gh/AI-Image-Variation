@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/image-variations/contracts/article-body-1.2.schema.json",
+  "title": "WeChat Article Content Blocks v1.2",
+  "type": "object",
+  "required": ["title", "summary", "blocks"],
+  "properties": {
+    "title": {"type": "string", "minLength": 1},
+    "summary": {"type": "string"},
+    "topic_id": {"type": "string"},
+    "content_id": {"type": "string"},
+    "language": {"enum": ["zh-CN", "en", "other"]},
+    "blocks_version": {"enum": ["1.1", "1.2"]},
+    "blocks": {
+      "type": "array",
+      "minItems": 3,
+      "items": {"oneOf": [
+        {"$ref": "#/$defs/text_block"},
+        {"$ref": "#/$defs/image_block"},
+        {"$ref": "#/$defs/image_group_block"}
+      ]}
+    }
+  },
+  "allOf": [{
+    "if": {
+      "required": ["blocks_version"],
+      "properties": {"blocks_version": {"const": "1.2"}}
+    },
+    "then": {
+      "properties": {
+        "blocks": {"items": {"properties": {"type": {"enum": ["text", "image"]}}}}
+      }
+    }
+  }],
+  "$defs": {
+    "text_block": {
+      "type": "object",
+      "required": ["type", "content"],
+      "properties": {
+        "type": {"const": "text"},
+        "content": {"type": "string", "minLength": 1},
+        "heading": {"type": "string"},
+        "level": {"enum": ["h2", "h3"]}
+      },
+      "additionalProperties": true
+    },
+    "image_block": {
+      "type": "object",
+      "required": ["type", "asset_id"],
+      "properties": {
+        "type": {"const": "image"},
+        "asset_id": {"type": "string", "minLength": 1},
+        "alt": {"type": "string"},
+        "caption": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "image_group_block": {
+      "type": "object",
+      "required": ["type", "images"],
+      "properties": {
+        "type": {"const": "image_group"},
+        "caption": {"type": "string"},
+        "images": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "required": ["asset_id"],
+            "properties": {
+              "asset_id": {"type": "string", "minLength": 1},
+              "alt": {"type": "string"}
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "$comment": "1.2 的正文逐张执行 text、image 交替，首尾为 text。业务校验器检查顺序。1.1 的 image_group 用于读取历史包。"
+}

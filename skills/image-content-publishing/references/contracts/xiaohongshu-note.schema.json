@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/image-variations/contracts/xiaohongshu-note-1.1.schema.json",
+  "title": "Xiaohongshu Note Content v1.1",
+  "type": "object",
+  "required": ["title", "body_with_hashtags", "first_comment", "selected_asset_ids"],
+  "properties": {
+    "title": {"type": "string", "minLength": 1},
+    "body_with_hashtags": {"type": "string", "minLength": 1},
+    "first_comment": {"type": "string", "minLength": 1},
+    "selected_asset_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "topic_id": {"type": "string", "minLength": 1},
+    "hashtags": {"type": "array", "items": {"type": "string", "minLength": 2}, "minItems": 1},
+    "claim_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "ai_disclosure": {"type": "string"},
+    "notes": {"type": "string"}
+  },
+  "additionalProperties": true,
+  "$comment": "话题标签必须真实出现在 body_with_hashtags 中、标题与正文字符数符合运行时平台配置、首评不得复述正文，均需业务校验器与平台配置校验。"
+}

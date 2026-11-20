@@ -14,10 +14,11 @@ dev = ["pytest>=8,<10", "ruff>=0.12", "PyYAML>=6,<7"]
 
 [project.scripts]
 image-variations = "image_variations.cli:main"
+image-content-publishing = "image_content_publishing.cli:main"
 
 [tool.setuptools]
-packages = ["image_variations", "image_variations.adapters", "shared"]
-package-dir = {image_variations = "skills/image-variations/scripts/image_variations", shared = "shared"}
+packages = ["image_variations", "image_variations.adapters", "image_content_publishing", "shared"]
+package-dir = {image_variations = "skills/image-variations/scripts/image_variations", image_content_publishing = "skills/image-content-publishing/scripts/image_content_publishing", shared = "shared"}
 
 [tool.setuptools.data-files]
 "share/image-variations" = ["skills/image-variations/SKILL.md"]
@@ -26,6 +27,9 @@ package-dir = {image_variations = "skills/image-variations/scripts/image_variati
 "share/image-variations/references/directions" = ["skills/image-variations/references/directions/*.txt", "skills/image-variations/references/directions/registry.json"]
 "share/image-variations/references/profiles" = ["skills/image-variations/references/profiles/*.json"]
 "share/image-variations/references/contracts" = ["contracts/*.json"]
+"share/image-content-publishing" = ["skills/image-content-publishing/SKILL.md"]
+"share/image-content-publishing/references" = ["skills/image-content-publishing/references/*.md", "skills/image-content-publishing/references/platform-config.json", "skills/image-variations/references/directions/registry.json"]
+"share/image-content-publishing/references/contracts" = ["skills/image-content-publishing/references/contracts/*.json", "contracts/image-artifact-1.0.schema.json", "contracts/image-artifact-1.1.schema.json", "contracts/delivery-package.schema.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

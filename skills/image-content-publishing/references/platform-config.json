@@ -1,0 +1,58 @@
+{
+  "config_version": "1.0",
+  "generated_at": "2026-11-16T00:00:00Z",
+  "verification_status": "unverified",
+  "note": "平台现行规则（像素、字符数、图片张数）未经实测。product_recommendation 是产品建议，platform_requirement 为 null 表示必须实测后回填，禁止把建议值当官方要求写入实现。",
+  "global": {
+    "max_cover_upscale_factor": 1.5,
+    "cover_fit_method_order": ["crop", "contain_pad"],
+    "forbid_stretch": true,
+    "ai_disclosure_required_when": "image_generated_by_ai",
+    "tile_edge_min_px": 1024,
+    "batch_default_max_items": 5
+  },
+  "platforms": {
+    "wechat": {
+      "display_name": "微信公众号",
+      "covers": {
+        "wide": {
+          "target_ratio": "2.35:1",
+          "product_recommendation": {"long_edge_px": 1063, "note": "按 2.35:1 与常见横版首图比例推导的产品建议，非平台官方承诺"},
+          "platform_requirement": null,
+          "min_source_long_edge_px": 708,
+          "verified": false
+        },
+        "square": {
+          "target_ratio": "1:1",
+          "product_recommendation": {"sizes_px": [[600, 600], [800, 800], [1080, 1080]], "note": "方形封面按导出尺寸档位给出，平台实际展示裁切需实测"},
+          "platform_requirement": null,
+          "min_source_long_edge_px": 600,
+          "verified": false
+        }
+      },
+      "body": {
+        "max_images": null,
+        "max_chars": null,
+        "html_import": "preview_only",
+        "html_import_note": "本版只保证 article.html 可预览/可复制，不承诺公众号编辑器无损导入"
+      },
+      "publish_automation": "disabled",
+      "publish_note": "默认不执行登录、授权或自动发布"
+    },
+    "xiaohongshu": {
+      "display_name": "小红书",
+      "title": {"max_chars": null, "min_chars": 1, "verified": false},
+      "body": {"max_chars": null, "min_chars": 1, "hashtag_min": 1, "hashtag_must_appear_in_body": true, "verified": false},
+      "images": {"max_count": null, "min_count": 1, "cover_required": false, "verified": false},
+      "first_comment": {"required": true, "must_differ_from_body": true},
+      "ai_disclosure_suggested": "画面为 AI 生成示意，非真实拍摄",
+      "publish_automation": "disabled",
+      "publish_note": "默认不执行登录、授权或自动发布"
+    }
+  },
+  "todo": [
+    {"id": "O-03", "item": "公众号封面现行像素与编辑器导入格式", "owner": "开发阶段实测"},
+    {"id": "O-04", "item": "小红书标题/正文/图片数/话题现行限制", "owner": "开发阶段实测"},
+    {"id": "O-05", "item": "批量内容最大篇数", "owner": "以 global.batch_default_max_items 为软限制，超限请用户确认"}
+  ]
+}

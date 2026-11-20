@@ -1,6 +1,6 @@
 # AI Image Variation
 
-基于 [SPEC 01 v1.3](specs/01-Image-Variations-Skill-v1.3.md) 的 Phase 1 开发实现。输入单张参考图、文本或图文，生成同一主体的 Grid 作品板或 Sequence 图片组，并完成原生尺寸验收、视觉检查交接、切图、清单与打包。
+两个可独立调用的 Skill。Skill 01 从参考图、文本或图文生成同一主体的 Grid 或 Sequence，并完成原生尺寸验收、视觉检查、切图与打包。Skill 02 读取已交付的图片产物，策划选题并生成公众号或小红书素材包。 [SPEC 01](specs/01-Image-Variations-Skill-v1.3.md) · [SPEC 02](specs/02-Image-Content-Publishing-Skill-v1.1.md)
 
 当前发布 **Skill 01 · 0.1.1 开发预览**。Grid 支持 2×2、3×3、4×4，Sequence 支持 4–16 张独立图片。两种模式共享十二个变化方向。正式生图需要对应型号和路由的已验证能力档案，以及宿主的实际视觉检查。 [验证记录](docs/validation.md)
 
@@ -61,18 +61,34 @@ P1-01 参数解析 → 按需 P1-02 归一化 → P1-03 主体锚点
 - 原始返回像素与几何处理后像素分开记录。Grid 只允许每轴 ≤1% 的整除微调，原始与有效比例分别检查。
 - 有图序列始终引用原图；纯文本序列首帧通过后，其余帧始终引用首帧。
 
+## Skill 02 本地开发预览
+
+从已完成的 Skill 01 目录开始。工作流固定来源任务、修订和清单哈希，再由宿主看图、策划与写稿。先看选题时，可停在候选阶段。明确生成时，可交付逐张图文交替的公众号正文、HTML 预览和同源双封面，或含话题与首评的小红书笔记。混合批次可以只补做失败篇。 [Skill 02 入口](skills/image-content-publishing/SKILL.md) · [宿主工作流](skills/image-content-publishing/references/host-workflow.md)
+
+```sh
+uv run --locked image-content-publishing inspect SOURCE
+uv run --locked image-content-publishing plan SOURCE request.json --output plan.json
+uv run --locked image-content-publishing build SOURCE plan.json drafts.json --output package-r001
+uv run --locked image-content-publishing validate package-r001 --source SOURCE
+uv run --locked image-content-publishing pack package-r001 --zip package-r001.zip
+```
+
+R0 创意内容可离线交付。R1/R2 的研究记录由具备检索能力的宿主提交。公众号封面尺寸和小红书平台规格使用试行配置，编辑器实测与成功篇的局部修订列入后续开发。 [验证记录](docs/validation.md) · [试行配置](skills/image-content-publishing/references/platform-config.json)
+
 ## 构建安装包
 
 ```sh
 uv run --locked python scripts/build_skill.py
+uv run --locked python scripts/build_skill.py --skill image-content-publishing
 ```
 
-产出 `dist/image-variations-0.1.1.zip`。安装包可在仓库之外独立运行。
+生成 `dist/image-variations-0.1.1.zip` 和 `dist/image-content-publishing-dev.zip`。两份安装包均可在仓库之外独立运行。
 
 ## 仓库布局
 
 ```text
 skills/image-variations/   独立 Skill、规范提示词、Python 运行时
+skills/image-content-publishing/  独立内容 Skill、宿主工作流及平台和内容契约
 shared/                   相对路径、图像产物和交付包校验器
 contracts/                1.0 / 1.1 图像产物及能力档案契约
 specs/                    00 架构、01 生图、02 内容生产、03 集成及提示词修订
@@ -84,6 +100,6 @@ examples/mock-grid/       脱敏合成结构示例
 
 ## 后续开发
 
-Skill 02 将基于已完成的图片清单生成公众号和小红书素材包。当前仓库提供其规格及开发顺序。Skill 01 成功后可以推荐内容生产，由用户主动启动。 [开发待办](docs/ROADMAP.md) · [SPEC 02](specs/02-Image-Content-Publishing-Skill-v1.1.md) · [SPEC 03](specs/03-Integration-and-Artifact-Contract-v1.1.md)
+Skill 01 成功后可以推荐内容生产，由用户主动启动。后续验收覆盖真实生图能力、Skill 02 真实素材与研究、平台编辑器和局部修订。 [开发待办](docs/ROADMAP.md) · [SPEC 03](specs/03-Integration-and-Artifact-Contract-v1.1.md)
 
 本仓库沿用 MIT 许可。 [LICENSE](LICENSE)
