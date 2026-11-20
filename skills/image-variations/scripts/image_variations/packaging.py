@@ -4,11 +4,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from shared.artifacts import verify_delivery
+from shared.artifacts import delivery_inventory, verify_delivery
 from shared.paths import safe_path
 
 from .errors import require
-from .imaging import sha256
 from .resources import contracts_root
 
 
@@ -26,31 +25,10 @@ def write_json(path, obj):
 
 def inventory(root, package_id):
     root = Path(root)
-    entries = []
-    for path in sorted(root.rglob("*")):
-        require(not path.is_symlink(), "UNSAFE_PATH", "交付目录不能含符号链接")
-        if not path.is_file() or path.name == "delivery-package.json":
-            continue
-        name = path.relative_to(root).as_posix()
-        data = safe_path(root, name).read_bytes()
-        entries.append(
-            {
-                "path": name,
-                "kind": "image" if path.suffix.lower() in {".png", ".jpg", ".webp"} else "metadata",
-                "bytes": len(data),
-                "sha256": sha256(data),
-            }
-        )
-    result = {
-        "package_id": package_id,
-        "package_type": "image_variations",
-        "root": ".",
-        "manifest_path": "manifest.json",
-        "entries": entries,
-        "total_files": len(entries),
-        "total_bytes": sum(x["bytes"] for x in entries),
-        "created_at": now(),
-    }
+    try:
+        result = delivery_inventory(root, package_id, "image_variations", now())
+    except ValueError:
+        require(False, "UNSAFE_PATH", "交付目录不能含符号链接")
     write_json(root / "delivery-package.json", result)
     verify_delivery(root, contracts_root())
     return result

@@ -25,9 +25,13 @@ def content_assets(manifest):
     return sorted(selected, key=lambda x: x["index"])
 
 
-def validate_artifact(root, contracts=None, require_complete=True):
+def validate_artifact(root, contracts=None, require_complete=True, *, manifest_bytes=None):
     root = Path(root)
-    manifest = json.loads(safe_path(root, "manifest.json").read_text())
+    if manifest_bytes is None:
+        manifest_bytes = safe_path(root, "manifest.json").read_bytes()
+    manifest = json.loads(manifest_bytes)
+    if not isinstance(manifest, dict):
+        raise TypeError("SOURCE_MANIFEST_INVALID")
     version = manifest.get("schema_version")
     if version not in {"1.0", "1.1"}:
         raise ValueError("UNSUPPORTED_SCHEMA_VERSION")
@@ -142,16 +146,48 @@ def validate_artifact(root, contracts=None, require_complete=True):
     }
 
 
-def verify_delivery(root, contracts=None):
+def file_ref(name, data):
+    return {"path": name, "sha256": file_hash(data), "bytes": len(data)}
+
+
+def delivery_inventory(root, package_id, package_type, created_at):
     root = Path(root)
-    inventory = json.loads(safe_path(root, "delivery-package.json").read_text())
+    entries = []
+    for path in sorted(root.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("UNSAFE_PATH")
+        name = path.relative_to(root).as_posix()
+        if path.is_file() and name != "delivery-package.json":
+            data = safe_path(root, name).read_bytes()
+            kind = "image" if path.suffix.lower() in {".png", ".jpg", ".webp"} else "metadata"
+            entries.append({**file_ref(name, data), "kind": kind})
+    return {
+        "package_id": package_id,
+        "package_type": package_type,
+        "root": ".",
+        "manifest_path": "manifest.json",
+        "entries": entries,
+        "total_files": len(entries),
+        "total_bytes": sum(entry["bytes"] for entry in entries),
+        "created_at": created_at,
+    }
+
+
+def verify_delivery(root, contracts=None, *, inventory_bytes=None):
+    root = Path(root)
+    if inventory_bytes is None:
+        inventory_bytes = safe_path(root, "delivery-package.json").read_bytes()
+    inventory = json.loads(inventory_bytes)
     contracts = Path(contracts or Path(__file__).resolve().parents[1] / "contracts")
     Draft202012Validator(json.loads((contracts / "delivery-package.schema.json").read_text())).validate(
         inventory
     )
     entries = inventory["entries"]
     names = [entry["path"] for entry in entries]
-    actual = {p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()}
+    paths = list(root.rglob("*"))
+    if any(path.is_symlink() for path in paths):
+        raise ValueError("UNSAFE_PATH")
+    actual = {p.relative_to(root).as_posix() for p in paths if p.is_file()}
     # The inventory excludes only itself; a file cannot contain its own cryptographic hash.
     if len(set(names)) != len(names) or set(names) != actual - {"delivery-package.json"}:
         raise ValueError("PACKAGE_INVENTORY_MISMATCH")
